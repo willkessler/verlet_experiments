@@ -1,6 +1,8 @@
 // this snippet written after studying this basic article: //<>//
 // http://datagenetics.com/blog/july22018/index.html
 
+// todo: dampener should increase when angle gets small
+
 int BLOB_R = 5;
 int cctr = 0;
 PVector [] points;
@@ -13,8 +15,8 @@ float angleInc = 3;
 float angleRange = 65;
 float maxStickAngle = 30;
 PVector windowCenter;
-float dampener = .9;
-float gravity = 0.8;
+float dampener = .99;
+float gravity = 0.5;
 float initialAngle = 2;
 
 
@@ -136,14 +138,18 @@ void constrainAngles() {
     float f1 = (maxStickAngle - angleBetweenPrevAndNext.get("angle")) * angleBetweenCrankAndStick.get("sign");
     float f1r = radians(f1);
     // replace this with a rotation of p0 to f1
-    PVector newP1 = new PVector(cos(f1r), sin(f1r));
-    newP1.mult(stickLength);
+    PVector newP1 = new PVector(points[0].x, points[0].y);
+    newP1.rotate(f1r);
+    //PVector newP1 = new PVector(cos(f1r), sin(f1r));
+    //newP1.mult(stickLength);
     newP1.add(points[0]);
     points[1].set(newP1.x, newP1.y);
     float f2 = radians(maxStickAngle * angleBetweenCrankAndStick.get("sign"));
     // replace this with rotation of p0 to f2
-    PVector newPrev = new PVector(cos(f2), sin(f2));
-    newPrev.mult(stickLength);
+    //PVector newPrev = new PVector(cos(f2), sin(f2));
+    PVector newPrev = new PVector(points[0].x, points[0].y);
+    newPrev.rotate(f2);
+    //newPrev.mult(stickLength);
     newPrev.add(points[0]);
     prevPoints[1].set(newPrev.x, newPrev.y);
     float newDist = dist(prevPoints[1].x, prevPoints[1].y, points[1].x, points[1].y);
