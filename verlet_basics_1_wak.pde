@@ -11,7 +11,7 @@ float circleRad = 100;
 float stickLength = 100;
 int NS = 1;
 float angle = 0;
-float angleInc = 3;
+float angleInc = 4;
 float angleRange = 65;
 float maxStickAngle = 30;
 PVector windowCenter;
