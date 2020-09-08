@@ -58,20 +58,20 @@ void setup() {
 void updatePoints() {
 
   angle += angleInc;
-  //if (angle > angleRange) {
-  //  angle = angleRange;
-  //  angleInc *= -1;
-  //} else if (angle < -angleRange) {
-  //  angle = -angleRange;
-  //  angleInc *= -1;
-  //}
-  if ((angle > 720) || (angle < 0)) {
+  if (angle > angleRange) {
+    angle = angleRange;
+    angleInc *= -1;
+  } else if (angle < -angleRange) {
+    angle = -angleRange;
     angleInc *= -1;
   }
+  //if ((angle > 720) || (angle < 0)) {
+  //  angleInc *= -1;
+  //}
 
   // move "shoulder" by apply spring force
   float radAngle = radians(angle);
-  //points[0].set(cos(radAngle) * circleRad, sin(radAngle) * circleRad);
+  points[0].set(cos(radAngle) * circleRad, sin(radAngle) * circleRad);
 
   // move end of "elbow"
   float vx = (points[1].x - prevPoints[1].x) * dampener;
