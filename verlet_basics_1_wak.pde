@@ -1,7 +1,7 @@
 // this snippet written after studying this basic article: //<>//
 // http://datagenetics.com/blog/july22018/index.html
 
-// todo: dampener should increase when angle gets small
+// todo: armDampener should increase when angle gets small
 
 int BLOB_R = 5;
 PVector [] points;
@@ -14,15 +14,15 @@ float angleInc = 4;
 float angleRange = 65;
 float maxStickAngle = 30;
 PVector windowCenter;
-float dampener = .99;
+float armDampener = 1;
 float gravity = 0.5;
 float initialAngle = 2;
 float restingAngle = -20;
 float initialAngleVel = -4;
 float angleVel;
-float tau = .3;
+float tau = .15;
 float angleVelDampener = 1;
-float mass = 15;
+float mass = 12;
 
 
 // https://forum.processing.org/two/discussion/3811/what-is-the-alternative-in-processing
@@ -37,13 +37,19 @@ FloatDict angleBetweenVectors(PVector v1, PVector v2) {
   FloatDict result = new FloatDict();
   result.set("angle", 0);
   result.set("sign", 1);
-  PVector zeroCheck = PVector.sub(v1, v2);
+  PVector v1Norm = new PVector(v1.x, v1.y);
+  PVector v2Norm = new PVector(v2.x, v2.y);
+  v1Norm.normalize();
+  v2Norm.normalize();
+  
+  PVector zeroCheck = PVector.sub(v1Norm, v2Norm);
   if (zeroCheck.mag() < 0.01) {
     return result;
   }
-  float dp = v1.dot(v2);
-  float denom = v1.mag() * v2.mag();
-  result.set("angle", degrees(acos(dp/denom)));
+  float dp = v1Norm.dot(v2Norm);
+  result.set("angle", degrees(acos(dp)));
+  // cross prod of 2 2d vecs, cf source of https://chipmunk-physics.net/
+  // also see https://stackoverflow.com/questions/243945/calculating-a-2d-vectors-cross-product#:~:text=You%20can't%20do%20a,vectors%20on%20the%20xy%2Dplane.
   result.set("sign", sign(v1.x * v2.y - v1.y * v2.x));
   return result;
 }
@@ -66,7 +72,6 @@ void updateShoulder() {
   
   PVector restingVector = new PVector(cos(radians(restingAngle)), sin(radians(restingAngle)));
   PVector shoulderVector = new PVector(points[0].x, points[0].y);
-  shoulderVector.normalize();
   FloatDict springAngle = angleBetweenVectors(restingVector, shoulderVector);
   float tauForce = -1 * tau * springAngle.get("angle") * springAngle.get("sign");
   angleVel += tauForce / mass;
@@ -75,13 +80,13 @@ void updateShoulder() {
   
   // set shoulder position
   float radAngle = radians(angle);
-  points[0].set(cos(radAngle) * circleRad, sin(radAngle) * circleRad); //<>//
+  points[0].set(cos(radAngle) * circleRad, sin(radAngle) * circleRad);
 }
 
 void updateArm() {
   // move end of "elbow"
-  float vx = (points[1].x - prevPoints[1].x) * dampener;
-  float vy = (points[1].y - prevPoints[1].y) * dampener + gravity;
+  float vx = (points[1].x - prevPoints[1].x) * armDampener;
+  float vy = (points[1].y - prevPoints[1].y) * armDampener + gravity;
   prevPoints[1].set(points[1].x, points[1].y);
   points[1].set(points[1].x + vx, points[1].y + vy);
 }
@@ -110,30 +115,18 @@ void updateSticks() {
 
 // constrain angle between shoulder and elbow
 void constrainAngles() {
-  float prevDist =  dist(prevPoints[1].x, prevPoints[1].y, points[1].x, points[1].y); 
-  PVector prevPrev = new PVector(prevPoints[1].x, prevPoints[1].y);
-  PVector prevPoint = new PVector(points[1].x, points[1].y);
+  //float prevDist =  dist(prevPoints[1].x, prevPoints[1].y, points[1].x, points[1].y); 
+  //PVector prevPrev = new PVector(prevPoints[1].x, prevPoints[1].y);
+  //PVector prevPoint = new PVector(points[1].x, points[1].y);
   PVector p1, p2;
   p1 = new PVector(points[0].x, points[0].y);
   p2 = new PVector(points[1].x, points[1].y);
   p2.sub(p1);
-  //p1.normalize();
-  //p2.normalize();
 
-  //PVector p5 = new PVector(prevPoints[1].x, prevPoints[1].y);
-  //PVector p6 = new PVector(points[1].x, points[1].y);
-  //float angleBetweenP5andP6 = angleBetweenVectors(p5, p6);
-  //println("Loop, angleBetween:", angleBetweenP5andP6);
-
-
-  // cross prod of 2 2d vecs, cf source of https://chipmunk-physics.net/
-  // also see https://stackoverflow.com/questions/243945/calculating-a-2d-vectors-cross-product#:~:text=You%20can't%20do%20a,vectors%20on%20the%20xy%2Dplane.
-  //float angleSign = sign(p1.x * p2.y - p1.y * p2.x);
-  FloatDict angleBetweenCrankAndStick = angleBetweenVectors(p1, p2);
-  //println("angleSign:", angleBetweenCrankAndStick.get("sign"), "angleBetweenCrankAndStick:", angleBetweenCrankAndStick.get("angle"));
-  if (angleBetweenCrankAndStick.get("angle") > maxStickAngle) {
-
-    // calculate angle diff between prevPoints[1] and points[1]. 
+  FloatDict angleBetweenShoulderAndArm = angleBetweenVectors(p1, p2);
+  //println("angleSign:", angleBetweenShoulderAndArm.get("sign"), "angleBetweenShoulderAndArm:", angleBetweenShoulderAndArm.get("angle"));
+  if (angleBetweenShoulderAndArm.get("angle") > maxStickAngle) { // exceeded how far we can rotate, so reverse direction.
+    // Calculate angle diff between prevPoints[1] and points[1]. 
     // place prevPoints[1] at maxStickAngle
     // rotate same amount backwards to place points[1]
     PVector p3 = new PVector(prevPoints[1].x, prevPoints[1].y);
@@ -141,68 +134,40 @@ void constrainAngles() {
     p3.sub(points[0]);
     p4.sub(points[0]);
     FloatDict angleBetweenPrevAndNext = angleBetweenVectors(p3, p4);
-    float f1 = (maxStickAngle - angleBetweenPrevAndNext.get("angle")) * angleBetweenCrankAndStick.get("sign");
+    float f1 = (maxStickAngle - angleBetweenPrevAndNext.get("angle")) * angleBetweenShoulderAndArm.get("sign");
     float f1r = radians(f1);
-    // replace this with a rotation of p0 to f1
+
     PVector newP1 = new PVector(points[0].x, points[0].y);
     newP1.rotate(f1r);
-    //PVector newP1 = new PVector(cos(f1r), sin(f1r));
-    //newP1.mult(stickLength);
     newP1.add(points[0]);
     points[1].set(newP1.x, newP1.y);
-    float f2 = radians(maxStickAngle * angleBetweenCrankAndStick.get("sign"));
-    // replace this with rotation of p0 to f2
-    //PVector newPrev = new PVector(cos(f2), sin(f2));
+    
+    // place previous point at maxStickAngle position by taking vector to end of shoulder, 
+    // rotating to the arm's rotation, then translating to the end of the shoulder
+    float f2 = radians(maxStickAngle * angleBetweenShoulderAndArm.get("sign"));
     PVector newPrev = new PVector(points[0].x, points[0].y);
     newPrev.rotate(f2);
-    //newPrev.mult(stickLength);
     newPrev.add(points[0]);
     prevPoints[1].set(newPrev.x, newPrev.y);
-    float newDist = dist(prevPoints[1].x, prevPoints[1].y, points[1].x, points[1].y);
-    //println("Reset, f1:", f1, "angleBetween:", angleBetweenPrevAndNext.get("angle"), "prevDist:", prevDist, "newDist:", newDist);
+ 
+    //println("Reset, f1:", f1, "angleBetween:", angleBetweenPrevAndNext.get("angle"));
     //println("prevPrev:", prevPrev, "prevPoint:", prevPoint);
     //println("newPrev:", prevPoints[1], "newPoint:", points[1]);
-
-
-    // just swap prev and next if passing angle boundary
-    //if (false) {
-    //  float angleDiff =  maxStickAngle - angleBetweenCrankAndStick;
-    //  //angleDiff += -angleSign; // buffer of 2 degrees to prevent "bounce" during a reset
-    //  //p1.rotate(radians(angleBetweenCrankAndStick * angleSign));
-    //  //p1.mult(stickLength);
-    //  PVector tempP = new PVector(prevPoints[1].x, prevPoints[1].y);
-    //  //prevPoints[1].x = points[1].x;
-    //  //prevPoints[1].y = points[1].y;
-    //  points[1].set(prevPoints[1].x, prevPoints[1].y);
-
-    //  p1.mult(stickLength);
-    //  float felix = radians(maxStickAngle * angleSign);
-    //  p1.rotate(felix);
-    //  PVector check = new PVector(cos(felix), sin(felix));
-    //  check.mult(stickLength);
-    //  check.add(points[0]);
-    //  prevPoints[1].set(check.x, check.y);
-    //  //float newDist = dist(prevPoints[1].x, prevPoints[1].y, points[1].x, points[1].y);
-    //  println("reset! tolerance:", stickAngleTolerance, "angleDiff:", angleDiff, "angleSign:", angleSign, 
-    //    "angleBetweenCrankAndStick:", angleBetweenCrankAndStick, "prev:", prevPoints[1], 
-    //    "prevDist:", prevDist, "newDist:", newDist, 
-    //    "prevPrev", prevPrev, 
-    //    "points1", points[1], "check:", check);
-    //}
   }
 }
 
 void render() {
 
-  //draw sticks
   stroke(255, 0, 0);
 
   translate(windowCenter.x, windowCenter.y);
+
+  //draw shoulder and arm segments
   line(0, 0, points[0].x, points[0].y );
   line(points[0].x, points[0].y, points[1].x, points[1].y);
 
 
-  //draw points
+  //draw ellipses at joints
   stroke(164, 164, 164); 
   fill(255, 255, 0);
   ellipse(0, 0, BLOB_R*2, BLOB_R*2);
