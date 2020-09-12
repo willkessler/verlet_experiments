@@ -4,7 +4,6 @@
 // todo: dampener should increase when angle gets small
 
 int BLOB_R = 5;
-int cctr = 0;
 PVector [] points;
 PVector [] prevPoints;
 float circleRad = 100;
@@ -18,6 +17,10 @@ PVector windowCenter;
 float dampener = .99;
 float gravity = 0.5;
 float initialAngle = 2;
+float restingAngle = -20;
+float angleVel = -1;
+float k = .1;
+float mass = 10;
 
 
 // https://forum.processing.org/two/discussion/3811/what-is-the-alternative-in-processing
@@ -54,30 +57,33 @@ void setup() {
   prevPoints[1].rotate(radians(initialAngle));
 }
 
-
-void updatePoints() {
-
-  angle += angleInc;
-  if (angle > angleRange) {
-    angle = angleRange;
-    angleInc *= -1;
-  } else if (angle < -angleRange) {
-    angle = -angleRange;
-    angleInc *= -1;
-  }
-  //if ((angle > 720) || (angle < 0)) {
-  //  angleInc *= -1;
-  //}
-
-  // move "shoulder" by apply spring force
+void updateShoulder() {
+ // for the shoulder, apply spring force as tangential to the circle at the shoulder length, where
+  // accelVector = force / mass, and force = k * spring_angle 
+  
+  PVector restingVector = new PVector(cos(radians(restingAngle)), sin(radians(restingAngle)));
+  PVector shoulderVector = new PVector(points[0].x, points[0].y);
+  FloatDict springAngle = angleBetweenVectors(restingVector, shoulderVector);
+  float kForce = -1 * k * springAngle.get("angle") * springAngle.get("sign");
+  angleVel += kForce / mass;
+  angle += angleVel;
+  
+  // set shoulder position
   float radAngle = radians(angle);
   points[0].set(cos(radAngle) * circleRad, sin(radAngle) * circleRad);
+}
 
+void updateArm() {
   // move end of "elbow"
   float vx = (points[1].x - prevPoints[1].x) * dampener;
   float vy = (points[1].y - prevPoints[1].y) * dampener + gravity;
   prevPoints[1].set(points[1].x, points[1].y);
   points[1].set(points[1].x + vx, points[1].y + vy);
+}
+
+void updatePoints() {
+  updateShoulder();
+  updateArm();
 }
 
 
@@ -121,11 +127,6 @@ void constrainAngles() {
   FloatDict angleBetweenCrankAndStick = angleBetweenVectors(p1, p2);
   //println("angleSign:", angleBetweenCrankAndStick.get("sign"), "angleBetweenCrankAndStick:", angleBetweenCrankAndStick.get("angle"));
   if (angleBetweenCrankAndStick.get("angle") > maxStickAngle) {
-    cctr++;
-    //println("cctr:", cctr);
-    if (cctr == 4) {
-      println("reverse bottom");
-    }
 
     // calculate angle diff between prevPoints[1] and points[1]. 
     // place prevPoints[1] at maxStickAngle
@@ -153,9 +154,9 @@ void constrainAngles() {
     newPrev.add(points[0]);
     prevPoints[1].set(newPrev.x, newPrev.y);
     float newDist = dist(prevPoints[1].x, prevPoints[1].y, points[1].x, points[1].y);
-    println("Reset, f1:", f1, "angleBetween:", angleBetweenPrevAndNext.get("angle"), "prevDist:", prevDist, "newDist:", newDist);
-    println("prevPrev:", prevPrev, "prevPoint:", prevPoint);
-    println("newPrev:", prevPoints[1], "newPoint:", points[1]);
+    //println("Reset, f1:", f1, "angleBetween:", angleBetweenPrevAndNext.get("angle"), "prevDist:", prevDist, "newDist:", newDist);
+    //println("prevPrev:", prevPrev, "prevPoint:", prevPoint);
+    //println("newPrev:", prevPoints[1], "newPoint:", points[1]);
 
 
     // just swap prev and next if passing angle boundary
