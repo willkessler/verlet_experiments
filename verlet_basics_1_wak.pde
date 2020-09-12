@@ -18,8 +18,10 @@ float dampener = .99;
 float gravity = 0.5;
 float initialAngle = 2;
 float restingAngle = -20;
-float angleVel = -1;
-float k = .1;
+float initialAngleVel = -4;
+float angleVel;
+float tau = .3;
+float angleVelDampener = 0.99;
 float mass = 10;
 
 
@@ -55,22 +57,25 @@ void setup() {
   prevPoints = new PVector[2];
   prevPoints[1] = new PVector(circleRad + stickLength, 0);
   prevPoints[1].rotate(radians(initialAngle));
+  angleVel = initialAngleVel;
 }
 
 void updateShoulder() {
  // for the shoulder, apply spring force as tangential to the circle at the shoulder length, where
-  // accelVector = force / mass, and force = k * spring_angle 
+  // accelVector = force / mass, and force = -1 * tau * spring_angle , tau = torsional spring constant
   
   PVector restingVector = new PVector(cos(radians(restingAngle)), sin(radians(restingAngle)));
   PVector shoulderVector = new PVector(points[0].x, points[0].y);
+  shoulderVector.normalize();
   FloatDict springAngle = angleBetweenVectors(restingVector, shoulderVector);
-  float kForce = -1 * k * springAngle.get("angle") * springAngle.get("sign");
-  angleVel += kForce / mass;
+  float tauForce = -1 * tau * springAngle.get("angle") * springAngle.get("sign");
+  angleVel += tauForce / mass;
+  angleVel *= angleVelDampener;
   angle += angleVel;
   
   // set shoulder position
   float radAngle = radians(angle);
-  points[0].set(cos(radAngle) * circleRad, sin(radAngle) * circleRad);
+  points[0].set(cos(radAngle) * circleRad, sin(radAngle) * circleRad); //<>//
 }
 
 void updateArm() {
