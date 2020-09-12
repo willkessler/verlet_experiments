@@ -21,8 +21,8 @@ float restingAngle = -20;
 float initialAngleVel = -4;
 float angleVel;
 float tau = .3;
-float angleVelDampener = 0.99;
-float mass = 10;
+float angleVelDampener = 1;
+float mass = 15;
 
 
 // https://forum.processing.org/two/discussion/3811/what-is-the-alternative-in-processing
