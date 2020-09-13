@@ -4,10 +4,11 @@
 // todo: armDampener should increase when angle gets small
 
 int BLOB_R = 5;
+float gravity = .6;
 PVector [] points;
 PVector [] prevPoints;
-float circleRad = 100;
-float stickLength = 100;
+float shoulderLength = 75;
+float armLength = 150;
 int NS = 1;
 float angle = 0;
 float angleInc = 4;
@@ -15,7 +16,6 @@ float angleRange = 65;
 float maxStickAngle = 30;
 PVector windowCenter;
 float armDampener = 1;
-float gravity = 0.5;
 float initialAngle = 2;
 float restingAngle = -20;
 float initialAngleVel = -4;
@@ -58,10 +58,10 @@ void setup() {
   size(800, 650, P2D);
   windowCenter = new PVector(width/2, height/2);
   points = new PVector[2];
-  points[0] = new PVector(circleRad, 0);
-  points[1] = new PVector(circleRad + stickLength, 0);
+  points[0] = new PVector(shoulderLength, 0);
+  points[1] = new PVector(shoulderLength + armLength, 0);
   prevPoints = new PVector[2];
-  prevPoints[1] = new PVector(circleRad + stickLength, 0);
+  prevPoints[1] = new PVector(shoulderLength + armLength, 0);
   prevPoints[1].rotate(radians(initialAngle));
   angleVel = initialAngleVel;
 }
@@ -80,7 +80,7 @@ void updateShoulder() {
   
   // set shoulder position
   float radAngle = radians(angle);
-  points[0].set(cos(radAngle) * circleRad, sin(radAngle) * circleRad);
+  points[0].set(cos(radAngle) * shoulderLength, sin(radAngle) * shoulderLength);
 }
 
 void updateArm() {
@@ -102,7 +102,7 @@ void updateSticks() {
   dx = points[1].x - points[0].x;
   dy = points[1].y - points[0].y;
   dist = sqrt((dx*dx)+(dy*dy));
-  diff = stickLength - dist;
+  diff = armLength - dist;
   // percent = diff/dist/2; // divide by two only if moving both ends of a stick
   percent = diff / dist;
   offx = dx*percent;
@@ -115,7 +115,7 @@ void updateSticks() {
 
 // constrain angle between shoulder and elbow
 void constrainAngles() {
-  //float prevDist =  dist(prevPoints[1].x, prevPoints[1].y, points[1].x, points[1].y); 
+  //float prevArmLength =  dist(points[0].x, points[0].y, points[1].x, points[1].y); 
   //PVector prevPrev = new PVector(prevPoints[1].x, prevPoints[1].y);
   //PVector prevPoint = new PVector(points[1].x, points[1].y);
   PVector p1, p2;
@@ -137,8 +137,9 @@ void constrainAngles() {
     float f1 = (maxStickAngle - angleBetweenPrevAndNext.get("angle")) * angleBetweenShoulderAndArm.get("sign");
     float f1r = radians(f1);
 
-    PVector newP1 = new PVector(points[0].x, points[0].y);
-    newP1.rotate(f1r);
+    PVector newP1 = new PVector(armLength,0);
+    newP1.rotate(radians(angle)); // rotate to the shoulder angle
+    newP1.rotate(f1r);   // additionally, rotate to the maxStickAngle minus the overshoot
     newP1.add(points[0]);
     points[1].set(newP1.x, newP1.y);
     
@@ -150,7 +151,9 @@ void constrainAngles() {
     newPrev.add(points[0]);
     prevPoints[1].set(newPrev.x, newPrev.y);
  
-    //println("Reset, f1:", f1, "angleBetween:", angleBetweenPrevAndNext.get("angle"));
+    //println("Reset, f1:", f1, "angleBetween:", angleBetweenPrevAndNext.get("angle"),
+    //        "prevArmLength:", prevArmLength,
+    //        "armLength:", dist(points[0].x, points[0].y, points[1].x, points[1].y));
     //println("prevPrev:", prevPrev, "prevPoint:", prevPoint);
     //println("newPrev:", prevPoints[1], "newPoint:", points[1]);
   }
