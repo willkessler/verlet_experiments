@@ -4,7 +4,7 @@
 // todo: armDampener should increase when angle gets small
 
 int BLOB_R = 5;
-float gravity = .6;
+float gravity = 0.75;
 PVector [] points;
 PVector [] prevPoints;
 float shoulderLength = 100;
