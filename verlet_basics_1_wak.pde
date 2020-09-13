@@ -7,13 +7,11 @@ int BLOB_R = 5;
 float gravity = .6;
 PVector [] points;
 PVector [] prevPoints;
-float shoulderLength = 75;
-float armLength = 150;
+float shoulderLength = 100;
+float armLength = 175;
 int NS = 1;
 float angle = 0;
-float angleInc = 4;
-float angleRange = 65;
-float maxStickAngle = 30;
+float [] maxStickAngles = { 35, 45 };
 PVector windowCenter;
 float armDampener = 1;
 float initialAngle = 2;
@@ -124,6 +122,8 @@ void constrainAngles() {
   p2.sub(p1);
 
   FloatDict angleBetweenShoulderAndArm = angleBetweenVectors(p1, p2);
+  int isAboveAlignment = angleBetweenShoulderAndArm.get("sign") < 0 ? 0 : 1;
+  float maxStickAngle = maxStickAngles[isAboveAlignment];
   //println("angleSign:", angleBetweenShoulderAndArm.get("sign"), "angleBetweenShoulderAndArm:", angleBetweenShoulderAndArm.get("angle"));
   if (angleBetweenShoulderAndArm.get("angle") > maxStickAngle) { // exceeded how far we can rotate, so reverse direction.
     // Calculate angle diff between prevPoints[1] and points[1]. 
