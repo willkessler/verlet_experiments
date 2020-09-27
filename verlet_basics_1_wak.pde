@@ -4,23 +4,22 @@
 // todo: armDampener should increase when angle gets small
 
 int BLOB_R = 5;
-float gravity = 0.75;
+float gravity = 0.01;
 PVector [] points;
 PVector [] prevPoints;
 float shoulderLength = 100;
-float armLength = 175;
+float armLength = 145;
 int NS = 1;
 float angle = 0;
-float [] maxStickAngles = { 35, 45 };
+float [] maxStickAngles = { 45, 50 };
 PVector windowCenter;
-float armDampener = 1;
 float initialAngle = 2;
 float restingAngle = -20;
 float initialAngleVel = -4;
 float angleVel;
 float tau = .15;
 float angleVelDampener = 1;
-float mass = 12;
+float mass = 20;
 
 
 // https://forum.processing.org/two/discussion/3811/what-is-the-alternative-in-processing
@@ -52,6 +51,7 @@ FloatDict angleBetweenVectors(PVector v1, PVector v2) {
   return result;
 }
 
+
 void setup() {
   size(800, 650, P2D);
   windowCenter = new PVector(width/2, height/2);
@@ -81,10 +81,42 @@ void updateShoulder() {
   points[0].set(cos(radAngle) * shoulderLength, sin(radAngle) * shoulderLength);
 }
 
+// compute dampener as the product of the angleFactors,
+// where each angleFactor is the 1 - 1.0/angle between p0->prevPoint and p0->maxAngle
+
+float computeDampener() {
+
+  PVector p1 = new PVector(prevPoints[1].x, prevPoints[1].y);
+  p1.sub(points[0]);
+  PVector p2 = new PVector(points[0].x, points[0].y);
+  p2.normalize();
+  PVector p3 = new PVector(p2.x,p2.y);
+  p3.rotate(-1 * maxStickAngles[0]);
+  FloatDict angleToUpperBoundary = angleBetweenVectors(p1,p3);
+  PVector p4 = new PVector(p2.x,p2.y);
+  p4.rotate(maxStickAngles[1]);
+  FloatDict angleToLowerBoundary = angleBetweenVectors(p1,p4);
+
+  // 1 - 1 / (.25 * angle + 1)
+  float spread = maxStickAngles[0] + maxStickAngles[1];
+  float upperAngle = angleToUpperBoundary.get("angle");
+  float lowerAngle = angleToLowerBoundary.get("angle");
+  float curveFlattener = 0.75;
+  float dampener1 = 1.0 - 1.0 / (curveFlattener * upperAngle+ 1);
+  float dampener2 = 1.0 - 1.0 / (curveFlattener * lowerAngle + 1);
+  
+  float finalDampener = (upperAngle < lowerAngle ? dampener1 : dampener2); 
+  
+  println("Dampeners:", "[", upperAngle, dampener1, "] [", lowerAngle, dampener2, "] : ", finalDampener);
+
+  return finalDampener;
+}
+
 void updateArm() {
   // move end of "elbow"
-  float vx = (points[1].x - prevPoints[1].x) * armDampener;
-  float vy = (points[1].y - prevPoints[1].y) * armDampener + gravity;
+  float dampener = computeDampener();
+  float vx = (points[1].x - prevPoints[1].x);
+  float vy = (points[1].y - prevPoints[1].y) + gravity;
   prevPoints[1].set(points[1].x, points[1].y);
   points[1].set(points[1].x + vx, points[1].y + vy);
 }
@@ -111,6 +143,7 @@ void updateSticks() {
   //println("updateSticks:", points[1].x, points[1].y);
 }
 
+
 // constrain angle between shoulder and elbow
 void constrainAngles() {
   //float prevArmLength =  dist(points[0].x, points[0].y, points[1].x, points[1].y); 
@@ -121,19 +154,24 @@ void constrainAngles() {
   p2 = new PVector(points[1].x, points[1].y);
   p2.sub(p1);
 
+  PVector p3 = new PVector(prevPoints[1].x, prevPoints[1].y);
+  PVector p4 = new PVector(points[1].x, points[1].y);
+  p3.sub(points[0]);
+  p4.sub(points[0]);
+  FloatDict angleBetweenPrevAndNext = angleBetweenVectors(p3, p4);
   FloatDict angleBetweenShoulderAndArm = angleBetweenVectors(p1, p2);
   int isAboveAlignment = angleBetweenShoulderAndArm.get("sign") < 0 ? 0 : 1;
   float maxStickAngle = maxStickAngles[isAboveAlignment];
   //println("angleSign:", angleBetweenShoulderAndArm.get("sign"), "angleBetweenShoulderAndArm:", angleBetweenShoulderAndArm.get("angle"));
-  if (angleBetweenShoulderAndArm.get("angle") > maxStickAngle) { // exceeded how far we can rotate, so reverse direction.
+  if (angleBetweenShoulderAndArm.get("angle") <= maxStickAngle) {
+    // dampen by a function of the angle diff
+    float dampener = 1.0 - (1.0 / angleBetweenShoulderAndArm.get("angle"));
+    float f1 = angleBetweenShoulderAndArm.get("angle") * dampener;
+} else { 
+    // exceeded how far we can rotate, so reverse direction.
     // Calculate angle diff between prevPoints[1] and points[1]. 
     // place prevPoints[1] at maxStickAngle
     // rotate same amount backwards to place points[1]
-    PVector p3 = new PVector(prevPoints[1].x, prevPoints[1].y);
-    PVector p4 = new PVector(points[1].x, points[1].y);
-    p3.sub(points[0]);
-    p4.sub(points[0]);
-    FloatDict angleBetweenPrevAndNext = angleBetweenVectors(p3, p4);
     float f1 = (maxStickAngle - angleBetweenPrevAndNext.get("angle")) * angleBetweenShoulderAndArm.get("sign");
     float f1r = radians(f1);
 
@@ -163,7 +201,7 @@ void render() {
 
   stroke(255, 0, 0);
 
-  translate(windowCenter.x, windowCenter.y);
+  translate(windowCenter.x - width/4, windowCenter.y);
 
   //draw shoulder and arm segments
   line(0, 0, points[0].x, points[0].y );
