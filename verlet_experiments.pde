@@ -21,6 +21,8 @@ float tau = .15;
 float angleVelDampener = 1;
 float mass = 20;
 
+float maxShoulderAngle = -100;
+
 
 // https://forum.processing.org/two/discussion/3811/what-is-the-alternative-in-processing
 int sign(float f) {
@@ -101,22 +103,26 @@ float computeDampener() {
   float spread = maxStickAngles[0] + maxStickAngles[1];
   float upperAngle = angleToUpperBoundary.get("angle");
   float lowerAngle = angleToLowerBoundary.get("angle");
-  float curveFlattener = 0.75;
-  float dampener1 = 1.0 - 1.0 / (curveFlattener * upperAngle+ 1);
+  float curveFlattener = .4;
+  float dampener1 = 1.0 - 1.0 / (curveFlattener * upperAngle + 1);
   float dampener2 = 1.0 - 1.0 / (curveFlattener * lowerAngle + 1);
   
-  float finalDampener = (upperAngle < lowerAngle ? dampener1 : dampener2); 
+  // if headed upwards, use upper dampener, otherwise use lower
+  float yDir = points[1].y - prevPoints[1].y;
+  float finalDampener = (yDir > 0 ? dampener1 : dampener2);
+  //float finalDampener = (upperAngle < lowerAngle ? dampener1 : dampener2); 
   
-  println("Dampeners:", "[", upperAngle, dampener1, "] [", lowerAngle, dampener2, "] : ", finalDampener);
+  println("YDir", yDir, "Dampeners:", "[", upperAngle, dampener1, "] [", lowerAngle, dampener2, "] : ", finalDampener);
 
   return finalDampener;
 }
 
 void updateArm() {
   // move end of "elbow"
-  float dampener = computeDampener();
-  float vx = (points[1].x - prevPoints[1].x);
-  float vy = (points[1].y - prevPoints[1].y) + gravity;
+ // float dampener = computeDampener();
+  float dampener = 1;
+  float vx = (points[1].x - prevPoints[1].x) * dampener;
+  float vy = (points[1].y - prevPoints[1].y) * dampener + gravity;
   prevPoints[1].set(points[1].x, points[1].y);
   points[1].set(points[1].x + vx, points[1].y + vy);
 }
