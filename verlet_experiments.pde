@@ -19,9 +19,10 @@ float initialAngleVel = -4;
 float angleVel;
 float tau = .15;
 float angleVelDampener = 1;
-float mass = 20;
+float mass = 40;
 
 float maxShoulderAngle = -100;
+boolean didConstrain = false;
 
 
 // https://forum.processing.org/two/discussion/3811/what-is-the-alternative-in-processing
@@ -152,6 +153,7 @@ void updateSticks() {
 
 // constrain angle between shoulder and elbow
 void constrainAngles() {
+  didConstrain = false;
   //float prevArmLength =  dist(points[0].x, points[0].y, points[1].x, points[1].y); 
   //PVector prevPrev = new PVector(prevPoints[1].x, prevPoints[1].y);
   //PVector prevPoint = new PVector(points[1].x, points[1].y);
@@ -165,11 +167,22 @@ void constrainAngles() {
   p3.sub(points[0]);
   p4.sub(points[0]);
   FloatDict angleBetweenPrevAndNext = angleBetweenVectors(p3, p4);
+  float prevNextAngleSign = angleBetweenPrevAndNext.get("sign");
   FloatDict angleBetweenShoulderAndArm = angleBetweenVectors(p1, p2);
+  boolean checkUpper = (angleBetweenShoulderAndArm.get("sign") < 0);
   int isAboveAlignment = angleBetweenShoulderAndArm.get("sign") < 0 ? 0 : 1;
   float maxStickAngle = maxStickAngles[isAboveAlignment];
   //println("angleSign:", angleBetweenShoulderAndArm.get("sign"), "angleBetweenShoulderAndArm:", angleBetweenShoulderAndArm.get("angle"));
-  if (angleBetweenShoulderAndArm.get("angle") <= maxStickAngle) {
+
+  // we only want to constrain if the direction of motion was *towards* the maximum in question
+  // if it's *away* from the max line then we want to let it keep going.
+  // to determine which max line we're interested in, compute the angle between the shoulder and
+  // the arm. if the sign is positive, it's the upper max line, otherwise it's the lower max line
+
+  println("checkUpper:", checkUpper, "prevNextAngleSign:", prevNextAngleSign);
+  if ( (angleBetweenShoulderAndArm.get("angle") <= maxStickAngle) ||
+       (prevNextAngleSign > 0 && checkUpper) ||
+       (prevNextAngleSign < 0 && !checkUpper) )  {
     // dampen by a function of the angle diff
     float dampener = 1.0 - (1.0 / angleBetweenShoulderAndArm.get("angle"));
     float f1 = angleBetweenShoulderAndArm.get("angle") * dampener;
@@ -200,11 +213,16 @@ void constrainAngles() {
     //        "armLength:", dist(points[0].x, points[0].y, points[1].x, points[1].y));
     //println("prevPrev:", prevPrev, "prevPoint:", prevPoint);
     //println("newPrev:", prevPoints[1], "newPoint:", points[1]);
+    didConstrain = true;
+    
   }
 }
 
 void render() {
 
+  fill(255);
+  //float yDiff = points[1].y - prevPoints[1].y;
+  text(prevPoints[1].y + " : " + points[1].y + (didConstrain ? " : C" : ""), 100,100);
   stroke(255, 0, 0);
 
   translate(windowCenter.x - width/4, windowCenter.y);
@@ -223,6 +241,8 @@ void render() {
   }
 
   translate(-windowCenter.x, -windowCenter.y);
+  
+  
 }
 
 void draw() {
@@ -235,4 +255,5 @@ void draw() {
   updateSticks();
   constrainAngles();
   render();
+  delay(50);
 }
