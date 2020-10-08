@@ -14,12 +14,12 @@ float angle = 0;
 float [] maxStickAngles = { 45, 50 };
 PVector windowCenter;
 float initialAngle = 2;
-float restingAngle = -20;
+float restingAngle = -10;
 float initialAngleVel = -4;
 float angleVel;
 float tau = .15;
 float angleVelDampener = 1;
-float mass = 40;
+float mass = 30;
 
 float maxShoulderAngle = -100;
 boolean didConstrain = false;
@@ -255,5 +255,5 @@ void draw() {
   updateSticks();
   constrainAngles();
   render();
-  delay(50);
+  //delay(250);
 }
