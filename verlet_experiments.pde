@@ -64,9 +64,9 @@ float computeMuscleBoost(int steps) {
   if (steps == 0) {
     return 1.0;
   }
-  float a = 1;
-  float d = 9;
-  float c = 3.7;
+  float a = .1;
+  float d = 5;
+  float c = 1.5;
   float expArg = ( -1 * ((steps - d) * (steps - d)) ) / (2 * c * c);
   float g = a * exp(expArg) + 1;
   return g;
@@ -143,7 +143,10 @@ float computeDampener() {
 void updateArm() {
   // move end of "elbow"
   //float dampener = computeDampener();
-  float dampener = 1;
+  float boost = computeMuscleBoost(stepsSinceConstraining);
+  println("boost:", boost);
+
+  float dampener = 1 * boost;
   float vx = (points[1].x - prevPoints[1].x) * dampener;
   float vy = (points[1].y - prevPoints[1].y) * dampener + gravity;
   prevPoints[1].set(points[1].x, points[1].y);
@@ -179,8 +182,6 @@ void constrainAngles() {
   if (stepsIncreasing) {
     stepsSinceConstraining++;
   }
-  float boost = computeMuscleBoost(stepsSinceConstraining);
-  println("boost:", boost);
 
 
   didConstrain = false;
@@ -289,5 +290,5 @@ void draw() {
   updateSticks();
   constrainAngles();
   render();
-  //delay(250);
+  delay(250);
 }
