@@ -1,7 +1,10 @@
 // this snippet written after studying this basic article: //<>//
 // http://datagenetics.com/blog/july22018/index.html
 
-// todo: armDampener should increase when angle gets small
+// todo: armDampener should increase when angle gets small DONE
+// todo: add muscular "boost" to arm at faster shoulder speeds so it keeps up
+// todo: make top angle limit for arm less than bottom limit
+// todo: reapply dampener to arm
 
 int BLOB_R = 5;
 float gravity = 0.01;
@@ -11,7 +14,7 @@ float shoulderLength = 100;
 float armLength = 145;
 int NS = 1;
 float angle = 0;
-float [] maxStickAngles = { 45, 50 };
+float [] maxStickAngles = { 20, 85 };
 PVector windowCenter;
 float initialAngle = 2;
 float restingAngle = -10;
@@ -20,8 +23,9 @@ float angleVel;
 float tau = .15;
 float angleVelDampener = 1;
 float mass = 30;
+int stepsSinceConstraining = 0;
+boolean stepsIncreasing = false;
 
-float maxShoulderAngle = -100;
 boolean didConstrain = false;
 
 
@@ -33,7 +37,7 @@ int sign(float f) {
 
 
 // see: https://www.euclideanspace.com/maths/algebra/vectors/angleBetween/
-FloatDict angleBetweenVectors(PVector v1, PVector v2) {
+FloatDict angleBetweenVectors(PVector v1, PVector v2) {        
   FloatDict result = new FloatDict();
   result.set("angle", 0);
   result.set("sign", 1);
@@ -54,6 +58,19 @@ FloatDict angleBetweenVectors(PVector v1, PVector v2) {
   return result;
 }
 
+// compute the boost based on the steps from the didConstrain moment.
+// width of the gaussian fn (c) should be a function of the shoulder angle.
+float computeMuscleBoost(int steps) {
+  if (steps == 0) {
+    return 1.0;
+  }
+  float a = 1;
+  float d = 9;
+  float c = 3.7;
+  float expArg = ( -1 * ((steps - d) * (steps - d)) ) / (2 * c * c);
+  float g = a * exp(expArg) + 1;
+  return g;
+}
 
 void setup() {
   size(800, 650, P2D);
@@ -67,6 +84,10 @@ void setup() {
   angleVel = initialAngleVel;
 }
 
+// at faster shoulder speeds, arm doesn't "have time" to catch up and swing throughout its motion,
+// which creates unrealistic motion of the arm. the arm needs a muscular "boost" when shoulder motions
+// are quicker, in order to keep up.
+  
 void updateShoulder() {
  // for the shoulder, apply spring force as tangential to the circle at the shoulder length, where
   // accelVector = force / mass, and force = -1 * tau * spring_angle , tau = torsional spring constant
@@ -82,6 +103,7 @@ void updateShoulder() {
   // set shoulder position
   float radAngle = radians(angle);
   points[0].set(cos(radAngle) * shoulderLength, sin(radAngle) * shoulderLength);
+  
 }
 
 // compute dampener as the product of the angleFactors,
@@ -120,7 +142,7 @@ float computeDampener() {
 
 void updateArm() {
   // move end of "elbow"
- // float dampener = computeDampener();
+  //float dampener = computeDampener();
   float dampener = 1;
   float vx = (points[1].x - prevPoints[1].x) * dampener;
   float vy = (points[1].y - prevPoints[1].y) * dampener + gravity;
@@ -153,6 +175,14 @@ void updateSticks() {
 
 // constrain angle between shoulder and elbow
 void constrainAngles() {
+  
+  if (stepsIncreasing) {
+    stepsSinceConstraining++;
+  }
+  float boost = computeMuscleBoost(stepsSinceConstraining);
+  println("boost:", boost);
+
+
   didConstrain = false;
   //float prevArmLength =  dist(points[0].x, points[0].y, points[1].x, points[1].y); 
   //PVector prevPrev = new PVector(prevPoints[1].x, prevPoints[1].y);
@@ -179,7 +209,7 @@ void constrainAngles() {
   // to determine which max line we're interested in, compute the angle between the shoulder and
   // the arm. if the sign is positive, it's the upper max line, otherwise it's the lower max line
 
-  println("checkUpper:", checkUpper, "prevNextAngleSign:", prevNextAngleSign);
+  //println("checkUpper:", checkUpper, "prevNextAngleSign:", prevNextAngleSign);
   if ( (angleBetweenShoulderAndArm.get("angle") <= maxStickAngle) ||
        (prevNextAngleSign > 0 && checkUpper) ||
        (prevNextAngleSign < 0 && !checkUpper) )  {
@@ -214,8 +244,12 @@ void constrainAngles() {
     //println("prevPrev:", prevPrev, "prevPoint:", prevPoint);
     //println("newPrev:", prevPoints[1], "newPoint:", points[1]);
     didConstrain = true;
+    println("didConstrain");
+    stepsIncreasing = true;
+    stepsSinceConstraining = 0;
     
   }
+
 }
 
 void render() {
