@@ -25,6 +25,7 @@ float angleVelDampener = 1;
 float mass = 30;
 int stepsSinceConstraining = 0;
 boolean stepsIncreasing = false;
+boolean armGoingUp = false;
 
 boolean didConstrain = false;
 
@@ -64,7 +65,8 @@ float computeMuscleBoost(int steps) {
   if (steps == 0) {
     return 1.0;
   }
-  float a = .1;
+  float[] a_vals = { 0.15, 0.05 };
+  float a = a_vals[ (armGoingUp ? 1 : 0) ];
   float d = 5;
   float c = 1.5;
   float expArg = ( -1 * ((steps - d) * (steps - d)) ) / (2 * c * c);
@@ -144,7 +146,7 @@ void updateArm() {
   // move end of "elbow"
   //float dampener = computeDampener();
   float boost = computeMuscleBoost(stepsSinceConstraining);
-  println("boost:", boost);
+  //println("boost:", boost);
 
   float dampener = 1 * boost;
   float vx = (points[1].x - prevPoints[1].x) * dampener;
@@ -198,6 +200,7 @@ void constrainAngles() {
   p3.sub(points[0]);
   p4.sub(points[0]);
   FloatDict angleBetweenPrevAndNext = angleBetweenVectors(p3, p4);
+  armGoingUp = (angleBetweenPrevAndNext.get("sign") < 0);
   float prevNextAngleSign = angleBetweenPrevAndNext.get("sign");
   FloatDict angleBetweenShoulderAndArm = angleBetweenVectors(p1, p2);
   boolean checkUpper = (angleBetweenShoulderAndArm.get("sign") < 0);
@@ -245,7 +248,7 @@ void constrainAngles() {
     //println("prevPrev:", prevPrev, "prevPoint:", prevPoint);
     //println("newPrev:", prevPoints[1], "newPoint:", points[1]);
     didConstrain = true;
-    println("didConstrain");
+    //println("didConstrain");
     stepsIncreasing = true;
     stepsSinceConstraining = 0;
     
@@ -257,7 +260,8 @@ void render() {
 
   fill(255);
   //float yDiff = points[1].y - prevPoints[1].y;
-  text(prevPoints[1].y + " : " + points[1].y + (didConstrain ? " : C" : ""), 100,100);
+  text(prevPoints[1].y + " : " + points[1].y + (didConstrain ? " : C" : ""), 50,100);
+  text("boost:" + computeMuscleBoost(stepsSinceConstraining), 50,80);
   stroke(255, 0, 0);
 
   translate(windowCenter.x - width/4, windowCenter.y);
@@ -290,5 +294,5 @@ void draw() {
   updateSticks();
   constrainAngles();
   render();
-  delay(250);
+  //delay(50);
 }
