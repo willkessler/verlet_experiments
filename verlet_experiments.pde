@@ -74,6 +74,13 @@ float computeMuscleBoost(int steps) {
   return g;
 }
 
+// compute a muscle boost based on the sin of the angle of the shoulder, as a proportion to 
+// the tangent of the arm vector in the direction of the shoulder's motion. 
+float computeMuscleBoost2() {
+
+  return(1.0);
+}
+
 void setup() {
   size(800, 650, P2D);
   windowCenter = new PVector(width/2, height/2);
@@ -262,6 +269,8 @@ void render() {
   //float yDiff = points[1].y - prevPoints[1].y;
   text(prevPoints[1].y + " : " + points[1].y + (didConstrain ? " : C" : ""), 50,100);
   text("boost:" + computeMuscleBoost(stepsSinceConstraining), 50,80);
+  float radAngle = radians(angle);
+  text("sin: " + -1 * sin(radAngle), 50,250);
   stroke(255, 0, 0);
 
   translate(windowCenter.x - width/4, windowCenter.y);
