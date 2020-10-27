@@ -28,6 +28,7 @@ boolean stepsIncreasing = false;
 boolean armGoingUp = false;
 
 boolean didConstrain = false;
+PVector muscleBoostVector;
 
 
 // https://forum.processing.org/two/discussion/3811/what-is-the-alternative-in-processing
@@ -76,9 +77,23 @@ float computeMuscleBoost(int steps) {
 
 // compute a muscle boost based on the sin of the angle of the shoulder, as a proportion to 
 // the tangent of the arm vector in the direction of the shoulder's motion. 
-float computeMuscleBoost2() {
+void computeMuscleBoost2() {
+  if ( ((angle < 0) && (angleVel < 0)) ||
+       ((angle > 0) && (angleVel > 0)) ) {
+    muscleBoostVector.set(0,0);
+  } else {
+    float angleSin = sin(radians(angle));
+    PVector p1;
+    p1 = new PVector(points[0].x, points[0].y);
+    muscleBoostVector.set(points[1].x, points[1].y);
+    muscleBoostVector.sub(p1);
+    muscleBoostVector.normalize();
 
-  return(1.0);
+    float tangentRot = -90;
+    muscleBoostVector.rotate(radians(tangentRot));
+    muscleBoostVector.mult(angleSin * 100);
+    println("angle:", angle, "angleVel:", angleVel, tangentRot, angleSin,  muscleBoostVector);
+  }
 }
 
 void setup() {
@@ -91,6 +106,7 @@ void setup() {
   prevPoints[1] = new PVector(shoulderLength + armLength, 0);
   prevPoints[1].rotate(radians(initialAngle));
   angleVel = initialAngleVel;
+  muscleBoostVector = new PVector(0,0);
 }
 
 // at faster shoulder speeds, arm doesn't "have time" to catch up and swing throughout its motion,
@@ -187,7 +203,6 @@ void updateSticks() {
 
 // constrain angle between shoulder and elbow
 void constrainAngles() {
-  
   if (stepsIncreasing) {
     stepsSinceConstraining++;
   }
@@ -268,7 +283,7 @@ void render() {
   fill(255);
   //float yDiff = points[1].y - prevPoints[1].y;
   text(prevPoints[1].y + " : " + points[1].y + (didConstrain ? " : C" : ""), 50,100);
-  text("boost:" + computeMuscleBoost(stepsSinceConstraining), 50,80);
+  //text("boost:" + computeMuscleBoost(stepsSinceConstraining), 50,80);
   float radAngle = radians(angle);
   text("sin: " + -1 * sin(radAngle), 50,250);
   stroke(255, 0, 0);
@@ -279,6 +294,9 @@ void render() {
   line(0, 0, points[0].x, points[0].y );
   line(points[0].x, points[0].y, points[1].x, points[1].y);
 
+  PVector muscleBoostVectorRendered = new PVector(points[1].x, points[1].y);
+  muscleBoostVectorRendered.add(muscleBoostVector);
+  line(points[1].x, points[1].y, muscleBoostVectorRendered.x, muscleBoostVectorRendered.y);
 
   //draw ellipses at joints
   stroke(164, 164, 164); 
@@ -302,6 +320,7 @@ void draw() {
   updatePoints();
   updateSticks();
   constrainAngles();
+  computeMuscleBoost2();
   render();
-  //delay(50);
+  delay(100);
 }
