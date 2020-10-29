@@ -168,10 +168,11 @@ float computeDampener() {
 void updateArm() {
   // move end of "elbow"
   //float dampener = computeDampener();
-  float boost = computeMuscleBoost(stepsSinceConstraining);
+  //float boost = computeMuscleBoost(stepsSinceConstraining);
   //println("boost:", boost);
 
-  float dampener = 1 * boost;
+  //float dampener = 1 * boost;
+  float dampener = 1;
   float vx = (points[1].x - prevPoints[1].x) * dampener;
   float vy = (points[1].y - prevPoints[1].y) * dampener + gravity;
   prevPoints[1].set(points[1].x, points[1].y);
@@ -317,10 +318,10 @@ void draw() {
   noFill();
   stroke(255);
 
+  computeMuscleBoost2();
   updatePoints();
   updateSticks();
   constrainAngles();
-  computeMuscleBoost2();
   render();
-  delay(100);
+  delay(250);
 }
