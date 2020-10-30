@@ -83,6 +83,7 @@ void computeMuscleBoost2() {
     muscleBoostVector.set(0,0);
   } else {
     float angleSin = sin(radians(angle));
+    float gain = 1;;
     PVector p1;
     p1 = new PVector(points[0].x, points[0].y);
     muscleBoostVector.set(points[1].x, points[1].y);
@@ -91,7 +92,7 @@ void computeMuscleBoost2() {
 
     float tangentRot = -90;
     muscleBoostVector.rotate(radians(tangentRot));
-    muscleBoostVector.mult(angleSin * 100);
+    muscleBoostVector.mult(angleSin * gain);
     println("angle:", angle, "angleVel:", angleVel, tangentRot, angleSin,  muscleBoostVector);
   }
 }
@@ -172,9 +173,9 @@ void updateArm() {
   //println("boost:", boost);
 
   //float dampener = 1 * boost;
-  float dampener = 1;
-  float vx = (points[1].x - prevPoints[1].x) * dampener;
-  float vy = (points[1].y - prevPoints[1].y) * dampener + gravity;
+  float vx = (points[1].x - prevPoints[1].x);
+  float vy = (points[1].y - prevPoints[1].y) + gravity;
+  
   prevPoints[1].set(points[1].x, points[1].y);
   points[1].set(points[1].x + vx, points[1].y + vy);
 }
@@ -286,7 +287,7 @@ void render() {
   text(prevPoints[1].y + " : " + points[1].y + (didConstrain ? " : C" : ""), 50,100);
   //text("boost:" + computeMuscleBoost(stepsSinceConstraining), 50,80);
   float radAngle = radians(angle);
-  text("sin: " + -1 * sin(radAngle), 50,250);
+  text("sin: " + -1 * sin(radAngle) + " boost:" + muscleBoostVector.x + "," + muscleBoostVector.y, 50,250);
   stroke(255, 0, 0);
 
   translate(windowCenter.x - width/4, windowCenter.y);
@@ -295,8 +296,9 @@ void render() {
   line(0, 0, points[0].x, points[0].y );
   line(points[0].x, points[0].y, points[1].x, points[1].y);
 
-  PVector muscleBoostVectorRendered = new PVector(points[1].x, points[1].y);
-  muscleBoostVectorRendered.add(muscleBoostVector);
+  PVector muscleBoostVectorRendered = new PVector(muscleBoostVector.x,  muscleBoostVector.y);
+  muscleBoostVectorRendered.mult(100);
+  muscleBoostVectorRendered.add(points[1]);
   line(points[1].x, points[1].y, muscleBoostVectorRendered.x, muscleBoostVectorRendered.y);
 
   //draw ellipses at joints
@@ -323,5 +325,5 @@ void draw() {
   updateSticks();
   constrainAngles();
   render();
-  delay(250);
+  delay(50);
 }
