@@ -10,8 +10,8 @@ int BLOB_R = 5;
 float gravity = 0.01;
 PVector [] points;
 PVector [] prevPoints;
-float shoulderLength = 100;
-float armLength = 145;
+float shoulderLength = 150;
+float armLength = 195;
 int NS = 1;
 float angle = 0;
 float [] maxStickAngles = { 20, 85 };
@@ -93,7 +93,6 @@ void computeMuscleBoost2() {
     float tangentRot = -90;
     muscleBoostVector.rotate(radians(tangentRot));
     muscleBoostVector.mult(angleSin * gain);
-    println("angle:", angle, "angleVel:", angleVel, tangentRot, angleSin,  muscleBoostVector);
   }
 }
 
@@ -284,10 +283,10 @@ void render() {
 
   fill(255);
   //float yDiff = points[1].y - prevPoints[1].y;
-  text(prevPoints[1].y + " : " + points[1].y + (didConstrain ? " : C" : ""), 50,100);
+  //text(prevPoints[1].y + " : " + points[1].y + (didConstrain ? " : C" : ""), 50,100);
   //text("boost:" + computeMuscleBoost(stepsSinceConstraining), 50,80);
   float radAngle = radians(angle);
-  text("sin: " + -1 * sin(radAngle) + " boost:" + muscleBoostVector.x + "," + muscleBoostVector.y, 50,250);
+  text("angle:" + angle + "  angleVel:"+ angleVel + "  boost : [" +  muscleBoostVector.x + "," + muscleBoostVector.y + "]", 50,height - 50);
   stroke(255, 0, 0);
 
   translate(windowCenter.x - width/4, windowCenter.y);
@@ -325,5 +324,5 @@ void draw() {
   updateSticks();
   constrainAngles();
   render();
-  delay(50);
+  delay(250);
 }
