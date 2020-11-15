@@ -32,11 +32,12 @@ float angleVelDampener = 1;
 float mass = 30;
 int stepsSinceConstraining = 0;
 boolean stepsIncreasing = false;
-boolean armGoingUp = false;
 
 boolean didConstrain = false;
 PVector muscleBoostVector;
 
+FloatDict angleBetweenShoulderAndArm, angleBetweenPrevAndNext;
+boolean armGoingUp = false;
 
 // https://forum.processing.org/two/discussion/3811/what-is-the-alternative-in-processing
 int sign(float f) {
@@ -67,45 +68,6 @@ FloatDict angleBetweenVectors(PVector v1, PVector v2) {
   return result;
 }
 
-// compute the boost based on the steps from the didConstrain moment.
-// width of the gaussian fn (c) should be a function of the shoulder angle.
-float computeMuscleBoost(int steps) {
-  if (steps == 0) {
-    return 1.0;
-  }
-  float[] a_vals = { 0.15, 0.05 };
-  float a = a_vals[ (armGoingUp ? 1 : 0) ];
-  float d = 5;
-  float c = 1.5;
-  float expArg = ( -1 * ((steps - d) * (steps - d)) ) / (2 * c * c);
-  float g = a * exp(expArg) + 1;
-  return g;
-}
-
-// compute a muscle boost based on the sin of the angle of the shoulder, as a proportion to 
-// the tangent of the arm vector in the direction of the shoulder's motion. 
-
-// UPDATE: hit the "power" when the arm reaches parallel with the shoulder. "lock" the arm
-// when the shoulder reaches a certain minimum angle going down and similarly going up
-
-void computeMuscleBoost2() {
-  float gain;
-  muscleBoostVector.set(0,0);
-  if ( ((angle > 15) && (angleVel < 0.5)) ||
-       ((angle < -50) && (angleVel > -1.5)) ) {
-    float angleSin = sin(radians(angle));
-    gain = (angle < 0 ? 3.5 : 3);
-    PVector p1;
-    p1 = new PVector(points[0].x, points[0].y);
-    muscleBoostVector.set(points[1].x, points[1].y);
-    muscleBoostVector.sub(p1);
-    muscleBoostVector.normalize();
-
-    float tangentRot = -90;
-    muscleBoostVector.rotate(radians(tangentRot));
-    muscleBoostVector.mult(angleSin * gain);
-  }
-}
 
 void setup() {
   size(800, 650, P2D);
@@ -139,6 +101,67 @@ void setup() {
   lineChart.setPointColour(color(180,50,50,100));
   lineChart.setPointSize(1);
   lineChart.setLineWidth(1);
+  
+}
+
+// compute the boost based on the steps from the didConstrain moment.
+// width of the gaussian fn (c) should be a function of the shoulder angle.
+float computeMuscleBoostGaussian(int steps) {
+  if (steps == 0) {
+    return 1.0;
+  }
+  float[] a_vals = { 0.15, 0.05 };
+  float a = a_vals[ (armGoingUp ? 1 : 0) ];
+  float d = 5;
+  float c = 1.5;
+  float expArg = ( -1 * ((steps - d) * (steps - d)) ) / (2 * c * c);
+  float g = a * exp(expArg) + 1;
+  return g;
+}
+
+// compute a muscle boost based on the sin of the angle of the shoulder, as a proportion to 
+// the tangent of the arm vector in the direction of the shoulder's motion. 
+
+// UPDATE: hit the "power" when the arm reaches parallel with the shoulder. "lock" the arm
+// when the shoulder reaches a certain minimum angle going down and similarly going up
+
+void computeMuscleBoostAngleSin() {
+  float gain;
+  muscleBoostVector.set(0,0);
+  if ( ((angle > 15) && (angleVel < 0.5)) ||
+       ((angle < -50) && (angleVel > -1.5)) ) {
+    float angleSin = sin(radians(angle));
+    gain = (angle < 0 ? 3.5 : 3);
+    PVector p1;
+    p1 = new PVector(points[0].x, points[0].y);
+    muscleBoostVector.set(points[1].x, points[1].y);
+    muscleBoostVector.sub(p1);
+    muscleBoostVector.normalize();
+
+    float tangentRot = -90;
+    muscleBoostVector.rotate(radians(tangentRot));
+    muscleBoostVector.mult(angleSin * gain);
+  }
+}
+
+// Compute angle between shoulder and arm, and
+// between the prev and next point of the arm to the end of the shoulder.
+void computeArmSegmentAngles() {
+  PVector p1, p2;
+  p1 = new PVector(points[0].x, points[0].y);
+  p2 = new PVector(points[1].x, points[1].y);
+  p2.sub(p1);
+
+  angleBetweenShoulderAndArm = angleBetweenVectors(p1, p2);
+
+  PVector p3 = new PVector(prevPoints[1].x, prevPoints[1].y);
+  PVector p4 = new PVector(points[1].x, points[1].y);
+  p3.sub(points[0]);
+  p4.sub(points[0]);
+  angleBetweenPrevAndNext = angleBetweenVectors(p3, p4);
+
+  armGoingUp = (angleBetweenPrevAndNext.get("sign") < 0);
+
   
 }
 
@@ -198,12 +221,8 @@ float computeDampener() {
   return finalDampener;
 }
 
+// Move end of "elbow"
 void updateArm() {
-  // move end of "elbow"
-  //float dampener = computeDampener();
-  //float boost = computeMuscleBoost(stepsSinceConstraining);
-  //println("boost:", boost);
-
   //float dampener = 1 * boost;
   float vx = (points[1].x - prevPoints[1].x) + muscleBoostVector.x;
   float vy = (points[1].y - prevPoints[1].y) + gravity + muscleBoostVector.y;
@@ -243,22 +262,9 @@ void constrainAngles() {
 
 
   didConstrain = false;
-  //float prevArmLength =  dist(points[0].x, points[0].y, points[1].x, points[1].y); 
-  //PVector prevPrev = new PVector(prevPoints[1].x, prevPoints[1].y);
-  //PVector prevPoint = new PVector(points[1].x, points[1].y);
-  PVector p1, p2;
-  p1 = new PVector(points[0].x, points[0].y);
-  p2 = new PVector(points[1].x, points[1].y);
-  p2.sub(p1);
 
-  PVector p3 = new PVector(prevPoints[1].x, prevPoints[1].y);
-  PVector p4 = new PVector(points[1].x, points[1].y);
-  p3.sub(points[0]);
-  p4.sub(points[0]);
-  FloatDict angleBetweenPrevAndNext = angleBetweenVectors(p3, p4);
-  armGoingUp = (angleBetweenPrevAndNext.get("sign") < 0);
   float prevNextAngleSign = angleBetweenPrevAndNext.get("sign");
-  FloatDict angleBetweenShoulderAndArm = angleBetweenVectors(p1, p2);
+
   boolean checkUpper = (angleBetweenShoulderAndArm.get("sign") < 0);
   int isAboveAlignment = angleBetweenShoulderAndArm.get("sign") < 0 ? 0 : 1;
   float maxStickAngle = maxStickAngles[isAboveAlignment];
@@ -318,7 +324,9 @@ void render() {
   //text(prevPoints[1].y + " : " + points[1].y + (didConstrain ? " : C" : ""), 50,100);
   //text("boost:" + computeMuscleBoost(stepsSinceConstraining), 50,80);
   float radAngle = radians(angle);
-  text("angle:" + angle + "  angleVel:"+ angleVel + "  boost : [" +  muscleBoostVector.x + "," + muscleBoostVector.y + "]", 50,height - 50);
+  text("Shoulder-arm Angle:" + round(angleBetweenShoulderAndArm.get("angle") * angleBetweenShoulderAndArm.get("sign")), 50, height - 50);
+  text("Shoulder angle:" + round(angle), 50, height - 40);
+  text("angleVel:" + angleVel, 50, height - 30);
   stroke(255, 0, 0);
 
   translate(windowCenter.x - width/4, windowCenter.y);
@@ -353,7 +361,8 @@ void draw() {
   noFill();
   stroke(255);
 
-  computeMuscleBoost2();
+  computeArmSegmentAngles();
+  computeMuscleBoostAngleSin();
   updatePoints();
   updateSticks();
   //constrainAngles();
