@@ -6,6 +6,13 @@
 // todo: make top angle limit for arm less than bottom limit
 // todo: reapply dampener to arm
 
+import org.gicentre.utils.stat.*;    // For chart classes.
+float [] graphX;
+float [] graphY;
+ 
+// Displays a simple line chart representing a time series.
+XYChart lineChart;
+
 int BLOB_R = 5;
 float gravity = 0.01;
 PVector [] points;
@@ -77,13 +84,17 @@ float computeMuscleBoost(int steps) {
 
 // compute a muscle boost based on the sin of the angle of the shoulder, as a proportion to 
 // the tangent of the arm vector in the direction of the shoulder's motion. 
+
+// UPDATE: hit the "power" when the arm reaches parallel with the shoulder. "lock" the arm
+// when the shoulder reaches a certain minimum angle going down and similarly going up
+
 void computeMuscleBoost2() {
-  if ( ((angle < 0) && (angleVel < 0)) ||
-       ((angle > 0) && (angleVel > 0)) ) {
-    muscleBoostVector.set(0,0);
-  } else {
+  float gain;
+  muscleBoostVector.set(0,0);
+  if ( ((angle > 15) && (angleVel < 0.5)) ||
+       ((angle < -50) && (angleVel > -1.5)) ) {
     float angleSin = sin(radians(angle));
-    float gain = 1;;
+    gain = (angle < 0 ? 3.5 : 3);
     PVector p1;
     p1 = new PVector(points[0].x, points[0].y);
     muscleBoostVector.set(points[1].x, points[1].y);
@@ -107,6 +118,28 @@ void setup() {
   prevPoints[1].rotate(radians(initialAngle));
   angleVel = initialAngleVel;
   muscleBoostVector = new PVector(0,0);
+
+  // Both x and y data set here.  
+  int graphRange = 1000;
+  graphX = new float[graphRange];
+  graphY = new float[graphRange];
+  for (int i = 0; i < graphRange; ++i) {
+    graphX[i] = i;
+    graphY[i] = 0;
+  }
+  lineChart = new XYChart(this);
+  lineChart.setData(graphX, graphY);
+   
+  // Axis formatting and labels.
+  lineChart.showXAxis(true); 
+  lineChart.showYAxis(true); 
+  lineChart.setMinY(0);
+     
+  // Symbol colours
+  lineChart.setPointColour(color(180,50,50,100));
+  lineChart.setPointSize(1);
+  lineChart.setLineWidth(1);
+  
 }
 
 // at faster shoulder speeds, arm doesn't "have time" to catch up and swing throughout its motion,
@@ -172,8 +205,8 @@ void updateArm() {
   //println("boost:", boost);
 
   //float dampener = 1 * boost;
-  float vx = (points[1].x - prevPoints[1].x);
-  float vy = (points[1].y - prevPoints[1].y) + gravity;
+  float vx = (points[1].x - prevPoints[1].x) + muscleBoostVector.x;
+  float vy = (points[1].y - prevPoints[1].y) + gravity + muscleBoostVector.y;
   
   prevPoints[1].set(points[1].x, points[1].y);
   points[1].set(points[1].x + vx, points[1].y + vy);
@@ -271,7 +304,6 @@ void constrainAngles() {
     //println("prevPrev:", prevPrev, "prevPoint:", prevPoint);
     //println("newPrev:", prevPoints[1], "newPoint:", points[1]);
     didConstrain = true;
-    //println("didConstrain");
     stepsIncreasing = true;
     stepsSinceConstraining = 0;
     
@@ -310,7 +342,9 @@ void render() {
 
   translate(-windowCenter.x, -windowCenter.y);
   
-  
+  textSize(9);
+  lineChart.draw(15,width/2, width/2 -10,height/2);
+   
 }
 
 void draw() {
@@ -322,7 +356,7 @@ void draw() {
   computeMuscleBoost2();
   updatePoints();
   updateSticks();
-  constrainAngles();
+  //constrainAngles();
   render();
-  delay(250);
+  delay(50);
 }
