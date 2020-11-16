@@ -45,12 +45,12 @@ int sign(float f) {
   return(int(f/abs(f)));
 }
 
-
 // see: https://www.euclideanspace.com/maths/algebra/vectors/angleBetween/
 FloatDict angleBetweenVectors(PVector v1, PVector v2) {        
   FloatDict result = new FloatDict();
   result.set("angle", 0);
   result.set("sign", 1);
+  result.set("signedAngle", 0);
   PVector v1Norm = new PVector(v1.x, v1.y);
   PVector v2Norm = new PVector(v2.x, v2.y);
   v1Norm.normalize();
@@ -65,6 +65,7 @@ FloatDict angleBetweenVectors(PVector v1, PVector v2) {
   // cross prod of 2 2d vecs, cf source of https://chipmunk-physics.net/
   // also see https://stackoverflow.com/questions/243945/calculating-a-2d-vectors-cross-product#:~:text=You%20can't%20do%20a,vectors%20on%20the%20xy%2Dplane.
   result.set("sign", sign(v1.x * v2.y - v1.y * v2.x));
+  result.set("signedAngle", result.get("angle") * result.get("sign"));
   return result;
 }
 
@@ -128,10 +129,12 @@ float computeMuscleBoostGaussian(int steps) {
 void computeMuscleBoostAngleSin() {
   float gain;
   muscleBoostVector.set(0,0);
-  if ( ((angle > 15) && (angleVel < 0.5)) ||
-       ((angle < -50) && (angleVel > -1.5)) ) {
+  //  if ( ( (angle > 10) && (angleVel < 0.5)  && (angleBetweenShoulderAndArm.get("signedAngle") < -45)) ||
+  //   ( (angle < 10) && (angleVel > -1.5) && (angleBetweenShoulderAndArm.get("signedAngle") > 45)) ) {
+  if ( ( (angle > 10) && (angleBetweenShoulderAndArm.get("signedAngle") > 25)) ||
+       ( (angle < -10) && (angleBetweenShoulderAndArm.get("signedAngle") < -5)) ) {
     float angleSin = sin(radians(angle));
-    gain = (angle < 0 ? 3.5 : 3);
+    gain = (angle < 0 ? 5.5 : 1.5);
     PVector p1;
     p1 = new PVector(points[0].x, points[0].y);
     muscleBoostVector.set(points[1].x, points[1].y);
@@ -140,7 +143,9 @@ void computeMuscleBoostAngleSin() {
 
     float tangentRot = -90;
     muscleBoostVector.rotate(radians(tangentRot));
-    muscleBoostVector.mult(angleSin * gain);
+    //float armAngleGainMultiplier = gain * pow(radians(angleBetweenShoulderAndArm.get("signedAngle")), 1.5);
+    float armAngleGainMultiplier = gain * sin(radians(angleBetweenShoulderAndArm.get("signedAngle")));
+    muscleBoostVector.mult(armAngleGainMultiplier);
   }
 }
 
@@ -222,10 +227,13 @@ float computeDampener() {
 }
 
 // Move end of "elbow"
-void updateArm() {
-  //float dampener = 1 * boost;
-  float vx = (points[1].x - prevPoints[1].x) + muscleBoostVector.x;
-  float vy = (points[1].y - prevPoints[1].y) + gravity + muscleBoostVector.y;
+void updateArm(boolean applyBoost) {
+  PVector bv = new PVector(0,0);
+  if (applyBoost) {
+    bv.set(muscleBoostVector.x, muscleBoostVector.y);
+  }
+  float vx = (points[1].x - prevPoints[1].x) + bv.x;
+  float vy = (points[1].y - prevPoints[1].y) + gravity + bv.y;
   
   prevPoints[1].set(points[1].x, points[1].y);
   points[1].set(points[1].x + vx, points[1].y + vy);
@@ -233,7 +241,7 @@ void updateArm() {
 
 void updatePoints() {
   updateShoulder();
-  updateArm();
+  updateArm(true);
 }
 
 
@@ -324,7 +332,7 @@ void render() {
   //text(prevPoints[1].y + " : " + points[1].y + (didConstrain ? " : C" : ""), 50,100);
   //text("boost:" + computeMuscleBoost(stepsSinceConstraining), 50,80);
   float radAngle = radians(angle);
-  text("Shoulder-arm Angle:" + round(angleBetweenShoulderAndArm.get("angle") * angleBetweenShoulderAndArm.get("sign")), 50, height - 50);
+  text("Shoulder-arm Angle:" + round(angleBetweenShoulderAndArm.get("signedAngle")), 50, height - 50);
   text("Shoulder angle:" + round(angle), 50, height - 40);
   text("angleVel:" + angleVel, 50, height - 30);
   stroke(255, 0, 0);
