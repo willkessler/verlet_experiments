@@ -24,7 +24,8 @@ float angle = 0;
 float [] maxStickAngles = { 20, 85 };
 PVector windowCenter;
 float initialAngle = 2;
-float restingAngle = -10;
+float shoulderRestingAngle = -15;
+float armRestingAngle = 10;
 float initialAngleVel = -4;
 float angleVel;
 float tau = .15;
@@ -131,10 +132,13 @@ void computeMuscleBoostAngleSin() {
   muscleBoostVector.set(0,0);
   //  if ( ( (angle > 10) && (angleVel < 0.5)  && (angleBetweenShoulderAndArm.get("signedAngle") < -45)) ||
   //   ( (angle < 10) && (angleVel > -1.5) && (angleBetweenShoulderAndArm.get("signedAngle") > 45)) ) {
-  if ( ( (angle > 10) && (angleBetweenShoulderAndArm.get("signedAngle") > 25)) ||
-       ( (angle < -10) && (angleBetweenShoulderAndArm.get("signedAngle") < -5)) ) {
+  float armAngleToRestingAngle = angleBetweenShoulderAndArm.get("signedAngle") - armRestingAngle;
+  if ( ( ( abs(angle) > 30) &&
+         ((armAngleToRestingAngle > 40) ||
+          (armAngleToRestingAngle < -5)) ) ||
+       abs(angle) < 30 ) {
     float angleSin = sin(radians(angle));
-    gain = (angle < 0 ? 5.5 : 1.5);
+    gain = (angle < 0 ? 4 : 1.5);
     PVector p1;
     p1 = new PVector(points[0].x, points[0].y);
     muscleBoostVector.set(points[1].x, points[1].y);
@@ -144,7 +148,7 @@ void computeMuscleBoostAngleSin() {
     float tangentRot = -90;
     muscleBoostVector.rotate(radians(tangentRot));
     //float armAngleGainMultiplier = gain * pow(radians(angleBetweenShoulderAndArm.get("signedAngle")), 1.5);
-    float armAngleGainMultiplier = gain * sin(radians(angleBetweenShoulderAndArm.get("signedAngle")));
+    float armAngleGainMultiplier = gain * sin(radians(armAngleToRestingAngle));
     muscleBoostVector.mult(armAngleGainMultiplier);
   }
 }
@@ -178,7 +182,7 @@ void updateShoulder() {
  // for the shoulder, apply spring force as tangential to the circle at the shoulder length, where
   // accelVector = force / mass, and force = -1 * tau * spring_angle , tau = torsional spring constant
   
-  PVector restingVector = new PVector(cos(radians(restingAngle)), sin(radians(restingAngle)));
+  PVector restingVector = new PVector(cos(radians(shoulderRestingAngle)), sin(radians(shoulderRestingAngle)));
   PVector shoulderVector = new PVector(points[0].x, points[0].y);
   FloatDict springAngle = angleBetweenVectors(restingVector, shoulderVector);
   float tauForce = -1 * tau * springAngle.get("angle") * springAngle.get("sign");
@@ -346,6 +350,8 @@ void render() {
   PVector muscleBoostVectorRendered = new PVector(muscleBoostVector.x,  muscleBoostVector.y);
   muscleBoostVectorRendered.mult(100);
   muscleBoostVectorRendered.add(points[1]);
+
+  stroke(55,55,0);
   line(points[1].x, points[1].y, muscleBoostVectorRendered.x, muscleBoostVectorRendered.y);
 
   //draw ellipses at joints
@@ -375,5 +381,5 @@ void draw() {
   updateSticks();
   //constrainAngles();
   render();
-  delay(50);
+  delay(150);
 }
