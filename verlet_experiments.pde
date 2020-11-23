@@ -24,7 +24,7 @@ float angle = 0;
 float [] maxStickAngles = { 20, 85 };
 PVector windowCenter;
 float initialAngle = 2;
-float shoulderRestingAngle = -15;
+float shoulderRestingAngle = -10;
 float armRestingAngle = 10;
 float initialAngleVel = -4;
 float angleVel;
@@ -38,6 +38,7 @@ boolean didConstrain = false;
 PVector muscleBoostVector;
 
 FloatDict angleBetweenShoulderAndArm, angleBetweenPrevAndNext;
+float armAngleToRestingAngle;
 boolean armGoingUp = false;
 
 // https://forum.processing.org/two/discussion/3811/what-is-the-alternative-in-processing
@@ -72,7 +73,7 @@ FloatDict angleBetweenVectors(PVector v1, PVector v2) {
 
 
 void setup() {
-  size(800, 650, P2D);
+  size(800, 1000, P2D);
   windowCenter = new PVector(width/2, height/2);
   points = new PVector[2];
   points[0] = new PVector(shoulderLength, 0);
@@ -132,13 +133,19 @@ void computeMuscleBoostAngleSin() {
   muscleBoostVector.set(0,0);
   //  if ( ( (angle > 10) && (angleVel < 0.5)  && (angleBetweenShoulderAndArm.get("signedAngle") < -45)) ||
   //   ( (angle < 10) && (angleVel > -1.5) && (angleBetweenShoulderAndArm.get("signedAngle") > 45)) ) {
-  float armAngleToRestingAngle = angleBetweenShoulderAndArm.get("signedAngle") - armRestingAngle;
-  if ( ( ( abs(angle) > 30) &&
-         ((armAngleToRestingAngle > 40) ||
-          (armAngleToRestingAngle < -5)) ) ||
-       abs(angle) < 30 ) {
+  armAngleToRestingAngle = angleBetweenShoulderAndArm.get("signedAngle") - armRestingAngle;
+  boolean mustBoost;
+  mustBoost = ( ( ( abs(angle) > 30) &&
+                  ((armAngleToRestingAngle > 40) ||
+                   (armAngleToRestingAngle < 0)) ) ||
+                ((angle > -30) && (angle < 0)) );
+  mustBoost = ( ((angleVel > -2) && (armAngleToRestingAngle < -40)) ||                                  // if shoulder going down, and arm bent too far down..
+                ((angleVel < 2) && (armAngleToRestingAngle > 0)) ||                                     // or if shoulder going up, and arm best too far up... 
+                ((armAngleToRestingAngle < -20) || (armAngleToRestingAngle > 40)) );                    // or if angle ever gets too big
+  
+  if (mustBoost) {
     float angleSin = sin(radians(angle));
-    gain = (angle < 0 ? 4 : 1.5);
+    gain = (angle < 0 ? 3.5 : 2);
     PVector p1;
     p1 = new PVector(points[0].x, points[0].y);
     muscleBoostVector.set(points[1].x, points[1].y);
@@ -336,12 +343,21 @@ void render() {
   //text(prevPoints[1].y + " : " + points[1].y + (didConstrain ? " : C" : ""), 50,100);
   //text("boost:" + computeMuscleBoost(stepsSinceConstraining), 50,80);
   float radAngle = radians(angle);
-  text("Shoulder-arm Angle:" + round(angleBetweenShoulderAndArm.get("signedAngle")), 50, height - 50);
-  text("Shoulder angle:" + round(angle), 50, height - 40);
-  text("angleVel:" + angleVel, 50, height - 30);
-  stroke(255, 0, 0);
+  int fSize = 24;
+  int fSizeBuffered = fSize + 4;
+  int leftMargin = 25;
+  textSize(fSize);
+  text("Shoulder angle:" + round(angle),                                                leftMargin, height - 6 * fSizeBuffered);
+  text("Anglevel:" + angleVel,                                                          leftMargin, height - 5 * fSizeBuffered);
+  text("Shoulder-arm Angle:" + round(angleBetweenShoulderAndArm.get("signedAngle")),    leftMargin, height - 4 * fSizeBuffered);
+  text("Shoulder-Arm Angle Distance to Resting Angle:" + round(armAngleToRestingAngle), leftMargin, height - 3 * fSizeBuffered);
+  if ((angle > -30) && (angle < 35)) {
+    stroke(0,255,0);
+  } else {
+    stroke(255, 0, 0);
+  }
 
-  translate(windowCenter.x - width/4, windowCenter.y);
+  translate(windowCenter.x - width/4, windowCenter.y + 30);
 
   //draw shoulder and arm segments
   line(0, 0, points[0].x, points[0].y );
@@ -365,7 +381,7 @@ void render() {
   translate(-windowCenter.x, -windowCenter.y);
   
   textSize(9);
-  lineChart.draw(15,width/2, width/2 -10,height/2);
+  //lineChart.draw(15,width/2, width/2 -10,height/2);
    
 }
 
@@ -381,5 +397,5 @@ void draw() {
   updateSticks();
   //constrainAngles();
   render();
-  delay(150);
+  //delay(20);
 }
