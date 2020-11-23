@@ -38,7 +38,7 @@ boolean didConstrain = false;
 PVector muscleBoostVector;
 
 FloatDict angleBetweenShoulderAndArm, angleBetweenPrevAndNext;
-float armAngleToRestingAngle;
+float armAngleToRestingAngle, gain;
 boolean armGoingUp = false;
 
 // https://forum.processing.org/two/discussion/3811/what-is-the-alternative-in-processing
@@ -129,23 +129,22 @@ float computeMuscleBoostGaussian(int steps) {
 // when the shoulder reaches a certain minimum angle going down and similarly going up
 
 void computeMuscleBoostAngleSin() {
-  float gain;
   muscleBoostVector.set(0,0);
   //  if ( ( (angle > 10) && (angleVel < 0.5)  && (angleBetweenShoulderAndArm.get("signedAngle") < -45)) ||
   //   ( (angle < 10) && (angleVel > -1.5) && (angleBetweenShoulderAndArm.get("signedAngle") > 45)) ) {
   armAngleToRestingAngle = angleBetweenShoulderAndArm.get("signedAngle") - armRestingAngle;
   boolean mustBoost;
-  mustBoost = ( ( ( abs(angle) > 30) &&
-                  ((armAngleToRestingAngle > 40) ||
-                   (armAngleToRestingAngle < 0)) ) ||
-                ((angle > -30) && (angle < 0)) );
-  mustBoost = ( ((angleVel > -2) && (armAngleToRestingAngle < -40)) ||                                  // if shoulder going down, and arm bent too far down..
-                ((angleVel < 2) && (armAngleToRestingAngle > 0)) ||                                     // or if shoulder going up, and arm best too far up... 
-                ((armAngleToRestingAngle < -20) || (armAngleToRestingAngle > 40)) );                    // or if angle ever gets too big
+  //mustBoost = ( ( ( abs(angle) > 30) &&
+  //                  ((armAngleToRestingAngle > 40) ||
+  //                 (armAngleToRestingAngle < 0)) ) ||
+  //                 ((angle > -30) && (angle < 0)) );
+  mustBoost = ( ((angleVel > 0) && (armAngleToRestingAngle < -10)) ||                                  // if shoulder going down, and arm bent too far down..
+                ((angleVel < 0) && (armAngleToRestingAngle > 0)) ||                                     // or if shoulder going up, and arm best too far up... 
+                ((armAngleToRestingAngle < -10) || (armAngleToRestingAngle > 40)) );                    // or if angle ever gets too big
   
   if (mustBoost) {
     float angleSin = sin(radians(angle));
-    gain = (angle < 0 ? 3.5 : 2);
+    gain = (((angleVel > -0) && (angle < 0)) ? 8 : 1.5);
     PVector p1;
     p1 = new PVector(points[0].x, points[0].y);
     muscleBoostVector.set(points[1].x, points[1].y);
@@ -351,7 +350,8 @@ void render() {
   text("Anglevel:" + angleVel,                                                          leftMargin, height - 5 * fSizeBuffered);
   text("Shoulder-arm Angle:" + round(angleBetweenShoulderAndArm.get("signedAngle")),    leftMargin, height - 4 * fSizeBuffered);
   text("Shoulder-Arm Angle Distance to Resting Angle:" + round(armAngleToRestingAngle), leftMargin, height - 3 * fSizeBuffered);
-  if ((angle > -30) && (angle < 35)) {
+  text("Gain:" + round(gain),                                                           leftMargin, height - 2 * fSizeBuffered);
+  if (gain > 2) {
     stroke(0,255,0);
   } else {
     stroke(255, 0, 0);
@@ -397,5 +397,5 @@ void draw() {
   updateSticks();
   //constrainAngles();
   render();
-  //delay(20);
+  delay(200);
 }
