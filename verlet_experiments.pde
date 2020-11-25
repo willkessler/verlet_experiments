@@ -25,7 +25,7 @@ float [] maxStickAngles = { 20, 85 };
 PVector windowCenter;
 float initialAngle = 2;
 float shoulderRestingAngle = -10;
-float armRestingAngle = 10;
+float armRestingAngle = 30;
 float initialAngleVel = -4;
 float angleVel;
 float tau = .15;
@@ -138,13 +138,15 @@ void computeMuscleBoostAngleSin() {
   //                  ((armAngleToRestingAngle > 40) ||
   //                 (armAngleToRestingAngle < 0)) ) ||
   //                 ((angle > -30) && (angle < 0)) );
-  mustBoost = ( ((angleVel > 0) && (armAngleToRestingAngle < -10)) ||                                  // if shoulder going down, and arm bent too far down..
-                ((angleVel < 0) && (armAngleToRestingAngle > 0)) ||                                     // or if shoulder going up, and arm best too far up... 
-                ((armAngleToRestingAngle < -10) || (armAngleToRestingAngle > 40)) );                    // or if angle ever gets too big
+  mustBoost = ( // ((angleVel > 0) && (armAngleToRestingAngle < -10)) ||                                  // if shoulder going down, and arm bent too far down..
+                ((angleVel < 0) && (armAngleToRestingAngle > 0)) ||                       // or if shoulder going up, and arm best too far up... 
+                ((armAngleToRestingAngle < 0) ||                                        // or if arm ever bent up too high
+                 ((armAngleToRestingAngle > 20)) && 
+                 ((angle > 0) && (angleVel > 0)) ) );                    // or if arm ever bent down too far and shoulder going up
   
   if (mustBoost) {
     float angleSin = sin(radians(angle));
-    gain = (((angleVel > -0) && (angle < 0)) ? 8 : 1.5);
+    gain = (((angleVel > -0) && (angle < 0)) ? 6 : 2);
     PVector p1;
     p1 = new PVector(points[0].x, points[0].y);
     muscleBoostVector.set(points[1].x, points[1].y);
@@ -397,5 +399,5 @@ void draw() {
   updateSticks();
   //constrainAngles();
   render();
-  delay(200);
+  delay(30);
 }
