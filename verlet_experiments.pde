@@ -40,6 +40,7 @@ PVector muscleBoostVector;
 FloatDict angleBetweenShoulderAndArm, angleBetweenPrevAndNext;
 float armAngleToRestingAngle, gain;
 boolean armGoingUp = false;
+String conditions;
 
 // https://forum.processing.org/two/discussion/3811/what-is-the-alternative-in-processing
 int sign(float f) {
@@ -130,23 +131,20 @@ float computeMuscleBoostGaussian(int steps) {
 
 void computeMuscleBoostAngleSin() {
   muscleBoostVector.set(0,0);
-  //  if ( ( (angle > 10) && (angleVel < 0.5)  && (angleBetweenShoulderAndArm.get("signedAngle") < -45)) ||
-  //   ( (angle < 10) && (angleVel > -1.5) && (angleBetweenShoulderAndArm.get("signedAngle") > 45)) ) {
   armAngleToRestingAngle = angleBetweenShoulderAndArm.get("signedAngle") - armRestingAngle;
   boolean mustBoost;
-  //mustBoost = ( ( ( abs(angle) > 30) &&
-  //                  ((armAngleToRestingAngle > 40) ||
-  //                 (armAngleToRestingAngle < 0)) ) ||
-  //                 ((angle > -30) && (angle < 0)) );
-  mustBoost = ( // ((angleVel > 0) && (armAngleToRestingAngle < -10)) ||                                  // if shoulder going down, and arm bent too far down..
-                ((angleVel < 0) && (armAngleToRestingAngle > 0)) ||                       // or if shoulder going up, and arm best too far up... 
-                ((armAngleToRestingAngle < 0) ||                                        // or if arm ever bent up too high
-                 ((armAngleToRestingAngle > 20)) && 
-                 ((angle > 0) && (angleVel > 0)) ) );                    // or if arm ever bent down too far and shoulder going up
+  boolean cond1, cond2, cond3, cond4;
+  cond1 = (armAngleToRestingAngle < 0);                   // arm bent up too high
+  cond2 = (armAngleToRestingAngle > 50);                  // arm bent down too far
+  cond3 = (angleVel < 0) && (armAngleToRestingAngle > 0); // shoulder going up, and arm bent too far down... 
+  cond4 = (angle > 0) && (angleVel < 3);                  // shoulder below horizon, and shoulder going up or near to going up
+
+  mustBoost = cond1 || cond2 || cond3 || cond4;
+  conditions = (cond1 ? "C1 " : " ") + (cond2 ? "C2 " : " ") + (cond3 ? "C3 " : " ") + (cond4 ? "C4 " : "");
   
   if (mustBoost) {
     float angleSin = sin(radians(angle));
-    gain = (((angleVel > -0) && (angle < 0)) ? 6 : 2);
+    gain = (((angleVel > 0) && (angle < 0)) ? 4 : 2); // gain high if shoulder going down above horizon only
     PVector p1;
     p1 = new PVector(points[0].x, points[0].y);
     muscleBoostVector.set(points[1].x, points[1].y);
@@ -352,7 +350,7 @@ void render() {
   text("Anglevel:" + angleVel,                                                          leftMargin, height - 5 * fSizeBuffered);
   text("Shoulder-arm Angle:" + round(angleBetweenShoulderAndArm.get("signedAngle")),    leftMargin, height - 4 * fSizeBuffered);
   text("Shoulder-Arm Angle Distance to Resting Angle:" + round(armAngleToRestingAngle), leftMargin, height - 3 * fSizeBuffered);
-  text("Gain:" + round(gain),                                                           leftMargin, height - 2 * fSizeBuffered);
+  text("Gain:" + round(gain) + " Conditions:" + conditions,                              leftMargin, height - 2 * fSizeBuffered);
   if (gain > 2) {
     stroke(0,255,0);
   } else {
@@ -399,5 +397,5 @@ void draw() {
   updateSticks();
   //constrainAngles();
   render();
-  delay(30);
+  delay(80);
 }
