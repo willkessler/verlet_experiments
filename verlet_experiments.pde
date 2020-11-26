@@ -133,18 +133,25 @@ void computeMuscleBoostAngleSin() {
   muscleBoostVector.set(0,0);
   armAngleToRestingAngle = angleBetweenShoulderAndArm.get("signedAngle") - armRestingAngle;
   boolean mustBoost;
-  boolean cond1, cond2, cond3, cond4;
+  boolean cond1, cond2, cond3, cond4, cond5;
   cond1 = (armAngleToRestingAngle < 0);                   // arm bent up too high
-  cond2 = (armAngleToRestingAngle > 50);                  // arm bent down too far
-  cond3 = (angleVel < 0) && (armAngleToRestingAngle > 0); // shoulder going up, and arm bent too far down... 
-  cond4 = (angle > 0) && (angleVel < 3);                  // shoulder below horizon, and shoulder going up or near to going up
+  cond2 = (armAngleToRestingAngle > 50);                 // arm bent down way too far generally
+  cond3 = (armAngleToRestingAngle > 20) && (armAngleToRestingAngle < 50) && (angle < 0) && (angleVel > 0); // arm going down, above horizon, arm bent too far down
+  cond4 = (angleVel < 0) && (armAngleToRestingAngle > 10); // shoulder going up, and arm bent too far down... 
+  cond5 = (angle > 0) && (angleVel < 0);                  // shoulder below horizon, and shoulder going up or near to going up
 
   mustBoost = cond1 || cond2 || cond3 || cond4;
-  conditions = (cond1 ? "C1 " : " ") + (cond2 ? "C2 " : " ") + (cond3 ? "C3 " : " ") + (cond4 ? "C4 " : "");
+  conditions = (cond1 ? "C1 " : " ") + (cond2 ? "C2 " : " ") + (cond3 ? "C3 " : " ") + (cond4 ? "C4 " : "") + (cond5 ? "C5 " : "");
   
   if (mustBoost) {
     float angleSin = sin(radians(angle));
-    gain = (((angleVel > 0) && (angle < 0)) ? 4 : 2); // gain high if shoulder going down above horizon only
+    //gain = (((angleVel > 0) && (angle < 0)) ? 6 : 2); // gain high if shoulder going down above horizon only
+    gain = (cond1 ? 1 : 0) * 4 +
+      (cond2 ? 1 : 0) * 6 +
+      (cond3 ? 1 : 0) * 3 +
+      (cond4 ? 1 : 0) * 2 +
+      (cond5 ? 1 : 0) * 1;
+
     PVector p1;
     p1 = new PVector(points[0].x, points[0].y);
     muscleBoostVector.set(points[1].x, points[1].y);
@@ -346,7 +353,7 @@ void render() {
   int fSizeBuffered = fSize + 4;
   int leftMargin = 25;
   textSize(fSize);
-  text("Shoulder angle:" + round(angle),                                                leftMargin, height - 6 * fSizeBuffered);
+  text("Shoulder Angle:" + round(angle),                                                leftMargin, height - 6 * fSizeBuffered);
   text("Anglevel:" + angleVel,                                                          leftMargin, height - 5 * fSizeBuffered);
   text("Shoulder-arm Angle:" + round(angleBetweenShoulderAndArm.get("signedAngle")),    leftMargin, height - 4 * fSizeBuffered);
   text("Shoulder-Arm Angle Distance to Resting Angle:" + round(armAngleToRestingAngle), leftMargin, height - 3 * fSizeBuffered);
