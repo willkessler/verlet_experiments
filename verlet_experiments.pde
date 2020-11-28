@@ -14,7 +14,7 @@ float [] graphY;
 XYChart lineChart;
 
 int BLOB_R = 5;
-float gravity = 0.01;
+float gravity = 9.8;
 PVector [] points;
 PVector [] prevPoints;
 float shoulderLength = 150;
@@ -42,6 +42,15 @@ float armAngleToRestingAngle, gain;
 float lastAngleBetweenShoulderAndArm, armAngularVelocity;
 boolean armGoingUp = false;
 String conditions;
+
+PVector pendulumArm;
+float pendulumArmLength = 100;
+float pendulumVelocity = 0;
+float pendulumAccel = 0;
+float pendulumAngle = 90;
+float pendulumAngle_r = 0;
+float pendulumDampener = 0.99;
+float pendulumTargetAngle = -45;
 
 // https://forum.processing.org/two/discussion/3811/what-is-the-alternative-in-processing
 int sign(float f) {
@@ -75,7 +84,7 @@ FloatDict angleBetweenVectors(PVector v1, PVector v2) {
 
 
 void setup() {
-  size(800, 1000, P2D);
+  size(1000, 1000, P2D);
   windowCenter = new PVector(width/2, height/2);
   points = new PVector[2];
   points[0] = new PVector(shoulderLength, 0);
@@ -83,6 +92,7 @@ void setup() {
   prevPoints = new PVector[2];
   prevPoints[1] = new PVector(shoulderLength + armLength, 0);
   prevPoints[1].rotate(radians(initialAngle));
+
   angleVel = initialAngleVel;
   muscleBoostVector = new PVector(0,0);
   armAngularVelocity = 0;
@@ -109,6 +119,7 @@ void setup() {
   lineChart.setPointSize(1);
   lineChart.setLineWidth(1);
   
+  pendulumArm = new PVector(0, 0);
 }
 
 // compute the boost based on the steps from the didConstrain moment.
@@ -288,6 +299,16 @@ void updateSticks() {
   //println("updateSticks:", points[1].x, points[1].y);
 }
 
+void updatePendulum() {
+  pendulumAccel = (-1* gravity / pendulumArmLength) * sin(pendulumAngle_r);
+  pendulumVelocity += pendulumAccel;
+  pendulumVelocity *= pendulumDampener;
+  pendulumAngle += pendulumVelocity;
+  pendulumAngle_r = radians(pendulumAngle);
+  pendulumArm.set(pendulumArmLength * sin(pendulumAngle_r), pendulumArmLength * cos(pendulumAngle_r));
+  //println(pendulumAngle, pendulumAngle_r);
+}
+
 
 // constrain angle between shoulder and elbow
 void constrainAngles() {
@@ -374,8 +395,11 @@ void render() {
 
   translate(windowCenter.x - width/4, windowCenter.y - 20);
 
+  /*
+
   //draw shoulder and arm segments
   line(0, 0, points[0].x, points[0].y );
+
   line(points[0].x, points[0].y, points[1].x, points[1].y);
 
   PVector muscleBoostVectorRendered = new PVector(muscleBoostVector.x,  muscleBoostVector.y);
@@ -392,9 +416,15 @@ void render() {
   for (int i=0; i<2; i++) {
     ellipse(points[i].x, points[i].y, BLOB_R*2, BLOB_R*2);
   }
+  */
+  
+  // draw pendulumArm
+  strokeWeight(5);
+  stroke(0,0,255);
+  line(0,0, pendulumArm.x, pendulumArm.y);
 
   translate(-windowCenter.x, -windowCenter.y);
-  
+
   textSize(9);
   //lineChart.draw(15,width/2, width/2 -10,height/2);
    
@@ -410,7 +440,8 @@ void draw() {
   computeMuscleBoostAngleSin();
   updatePoints();
   updateSticks();
+  updatePendulum();
   //constrainAngles();
   render();
-  delay(200);
+  //delay(20);
 }
