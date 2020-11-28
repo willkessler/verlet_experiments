@@ -44,13 +44,14 @@ boolean armGoingUp = false;
 String conditions;
 
 PVector pendulumArm;
+PVector origin, oToM;
 float pendulumArmLength = 100;
 float pendulumVelocity = 0;
 float pendulumAccel = 0;
-float pendulumAngle = 90;
+float pendulumAngle = 210;
 float pendulumAngle_r = 0;
-float pendulumDampener = 0.99;
-float pendulumTargetAngle = -45;
+float pendulumDampener = .95;
+float pendulumTargetAngle = -95;
 
 // https://forum.processing.org/two/discussion/3811/what-is-the-alternative-in-processing
 int sign(float f) {
@@ -86,6 +87,7 @@ FloatDict angleBetweenVectors(PVector v1, PVector v2) {
 void setup() {
   size(1000, 1000, P2D);
   windowCenter = new PVector(width/2, height/2);
+  origin = new PVector(windowCenter.x - width/4, windowCenter.y - 20);
   points = new PVector[2];
   points[0] = new PVector(shoulderLength, 0);
   points[1] = new PVector(shoulderLength + armLength, 0);
@@ -301,11 +303,22 @@ void updateSticks() {
 
 void updatePendulum() {
   pendulumAccel = (-1* gravity / pendulumArmLength) * sin(pendulumAngle_r);
+  oToM = new PVector(mouseX - origin.x, mouseY - origin.y);
+  oToM.normalize();
+  pendulumTargetAngle = degrees(atan2(oToM.y, oToM.x));
+
+  float angleDiff = pendulumTargetAngle - pendulumAngle;
+  pendulumAccel = 0;
+  if (abs(angleDiff) > 3) {
+    pendulumAccel = angleDiff / 50;
+  }
+
   pendulumVelocity += pendulumAccel;
   pendulumVelocity *= pendulumDampener;
   pendulumAngle += pendulumVelocity;
   pendulumAngle_r = radians(pendulumAngle);
-  pendulumArm.set(pendulumArmLength * sin(pendulumAngle_r), pendulumArmLength * cos(pendulumAngle_r));
+  //pendulumArm.set(pendulumArmLength * sin(pendulumAngle_r), pendulumArmLength * cos(pendulumAngle_r));
+  pendulumArm.set(pendulumArmLength * cos(pendulumAngle_r), pendulumArmLength * sin(pendulumAngle_r));
   //println(pendulumAngle, pendulumAngle_r);
 }
 
@@ -384,6 +397,7 @@ void render() {
   int fSizeBuffered = fSize + 4;
   int leftMargin = 25;
   textSize(fSize);
+  text("oToM angle: " + round(pendulumAngle) + " " + oToM.x + " " + oToM.y, leftMargin, height - 8 * fSizeBuffered);
   text("Angular velocity:" + armAngularVelocity,                                        leftMargin, height - 7 * fSizeBuffered);
   text("Shoulder Angle:" + round(angle),                                                leftMargin, height - 6 * fSizeBuffered);
   text("Anglevel:" + angleVel,                                                          leftMargin, height - 5 * fSizeBuffered);
@@ -393,7 +407,7 @@ void render() {
   stroke(0,255,0);
   strokeWeight(round(6 * gain / 4));
 
-  translate(windowCenter.x - width/4, windowCenter.y - 20);
+  translate(origin.x, origin.y);
 
   /*
 
@@ -423,10 +437,8 @@ void render() {
   stroke(0,0,255);
   line(0,0, pendulumArm.x, pendulumArm.y);
 
-  translate(-windowCenter.x, -windowCenter.y);
 
   textSize(9);
-  //lineChart.draw(15,width/2, width/2 -10,height/2);
    
 }
 
