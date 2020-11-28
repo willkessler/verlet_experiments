@@ -39,6 +39,7 @@ PVector muscleBoostVector;
 
 FloatDict angleBetweenShoulderAndArm, angleBetweenPrevAndNext;
 float armAngleToRestingAngle, gain;
+float lastAngleBetweenShoulderAndArm, armAngularVelocity;
 boolean armGoingUp = false;
 String conditions;
 
@@ -84,6 +85,8 @@ void setup() {
   prevPoints[1].rotate(radians(initialAngle));
   angleVel = initialAngleVel;
   muscleBoostVector = new PVector(0,0);
+  armAngularVelocity = 0;
+  lastAngleBetweenShoulderAndArm = 0;
 
   // Both x and y data set here.  
   int graphRange = 1000;
@@ -177,7 +180,11 @@ void computeArmSegmentAngles() {
   p2 = new PVector(points[1].x, points[1].y);
   p2.sub(p1);
 
+  if (angleBetweenShoulderAndArm != null) {
+    lastAngleBetweenShoulderAndArm = angleBetweenShoulderAndArm.get("signedAngle");
+  }
   angleBetweenShoulderAndArm = angleBetweenVectors(p1, p2);
+  armAngularVelocity = angleBetweenShoulderAndArm.get("signedAngle") - lastAngleBetweenShoulderAndArm;  
 
   PVector p3 = new PVector(prevPoints[1].x, prevPoints[1].y);
   PVector p4 = new PVector(points[1].x, points[1].y);
@@ -356,11 +363,12 @@ void render() {
   int fSizeBuffered = fSize + 4;
   int leftMargin = 25;
   textSize(fSize);
+  text("Angular velocity:" + armAngularVelocity,                                        leftMargin, height - 7 * fSizeBuffered);
   text("Shoulder Angle:" + round(angle),                                                leftMargin, height - 6 * fSizeBuffered);
   text("Anglevel:" + angleVel,                                                          leftMargin, height - 5 * fSizeBuffered);
   text("Shoulder-arm Angle:" + round(angleBetweenShoulderAndArm.get("signedAngle")),    leftMargin, height - 4 * fSizeBuffered);
   text("Shoulder-Arm Angle Distance to Resting Angle:" + round(armAngleToRestingAngle), leftMargin, height - 3 * fSizeBuffered);
-  text("Gain:" + round(gain) + " Conditions:" + conditions,                              leftMargin, height - 2 * fSizeBuffered);
+  text("Gain:" + round(gain) + " Conditions:" + conditions,                             leftMargin, height - 2 * fSizeBuffered);
   stroke(0,255,0);
   strokeWeight(round(6 * gain / 4));
 
@@ -404,5 +412,5 @@ void draw() {
   updateSticks();
   //constrainAngles();
   render();
-  delay(30);
+  delay(200);
 }
