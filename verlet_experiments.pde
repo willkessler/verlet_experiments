@@ -50,7 +50,7 @@ float pendulumVelocity = 0;
 float pendulumAccel = 0;
 float pendulumAngle = 210;
 float pendulumAngle_r = 0;
-float pendulumDampener = .95;
+float pendulumDampener = .8;
 float pendulumTargetAngle = -95;
 
 // https://forum.processing.org/two/discussion/3811/what-is-the-alternative-in-processing
@@ -310,7 +310,7 @@ void updatePendulum() {
   float angleDiff = pendulumTargetAngle - pendulumAngle;
   pendulumAccel = 0;
   if (abs(angleDiff) > 3) {
-    pendulumAccel = angleDiff / 50;
+    pendulumAccel = angleDiff / 75;
   }
 
   pendulumVelocity += pendulumAccel;
